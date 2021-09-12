@@ -87,6 +87,38 @@ function blockToHtml(block) {
   }
 }
 
+function groupBulletedItems(blocks) {
+  let result = [];
+  let currentList = [];
+  blocks.forEach((block) => {
+    if (block.type === "bulleted_list_item") {
+      currentList.push(block);
+    } else {
+      if (currentList.length) {
+        result.push({
+          type: "bulleted_list",
+          items: currentList,
+        });
+        currentList = [];
+      }
+
+      result.push({
+        type: "single",
+        block,
+      });
+    }
+  });
+
+  if (currentList.length) {
+    result.push({
+      type: "bulleted_list",
+      items: currentList,
+    });
+  }
+
+  return result;
+}
+
 (async () => {
   const pages = [];
   const index = "0e7f88242f2a44c3b724d159a339aebc";
@@ -97,18 +129,29 @@ function blockToHtml(block) {
       database: process.env["NOTION_DATABASE_ID"],
     },
     async ({ id, properties }, notion) => {
+      const title = concatenateTitle(properties.Name.title);
       const blocks = await notion.blocks.children.list({ block_id: id });
+
+      const groups = groupBulletedItems(blocks.results);
+      const content = groups
+        .map((entry) =>
+          entry.type === "single"
+            ? blockToHtml(entry.block)
+            : `<ul>${entry.items.map(blockToHtml).join("")}</ul>`
+        )
+        .join("");
+
       pages.push({
         id,
-        title: concatenateTitle(properties.Name.title),
-        content: blocks.results.map(blockToHtml).join(""),
+        title,
+        content,
       });
 
       if (id.replace(/-/g, "") === index) {
         pages.push({
           id,
-          title: concatenateTitle(properties.Name.title),
-          content: blocks.results.map(blockToHtml).join(""),
+          title,
+          content,
           filename: "index.html",
         });
       }

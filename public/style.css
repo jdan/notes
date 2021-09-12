@@ -11,4 +11,11 @@ body {
 
 main {
   width: 480px;
+  padding: 40px;
+  border: 1px solid black;
+  border-radius: 20px;
+}
+
+ul {
+  padding-left: 1em;
 }
