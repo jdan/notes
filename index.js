@@ -22,14 +22,30 @@ function textToHtml(text) {
   }
 }
 
-async function savePage({ id, title, content }) {
-  const outputDir = path.join(__dirname, "build");
+const outputDir = path.join(__dirname, "build");
+
+async function copyStaticAssets() {
+  const assets = ["style.css"];
+  return Promise.all(
+    assets.map(async (asset) =>
+      fs.copyFile(
+        path.join(__dirname, "public", asset),
+        path.join(outputDir, asset)
+      )
+    )
+  );
+}
+
+async function savePage({ id, title, content, filename }) {
+  filename = filename || `${id}.html`;
+
   const body = `
     <!doctype html>
     <html>
     <head>
       <title>${title}</title>
       <meta name="viewport" content="width=device-width, initial-scale=1">
+      <link rel="stylesheet" href="/style.css">
     </head>
     <body>
       <main>
@@ -39,7 +55,7 @@ async function savePage({ id, title, content }) {
     </body>
     </html>
   `;
-  await fs.writeFile(path.join(outputDir, `${id}.html`), body);
+  await fs.writeFile(path.join(outputDir, filename), body);
 }
 
 function blockToHtml(block) {
@@ -59,11 +75,12 @@ function blockToHtml(block) {
 
 (async () => {
   const pages = [];
+  const index = "0e7f88242f2a44c3b724d159a339aebc";
 
   await forEachRow(
     {
       token: process.env["NOTION_SECRET"],
-      database: process.env["NOTION_DATABSE_ID"],
+      database: process.env["NOTION_DATABASE_ID"],
     },
     async ({ id, properties }, notion) => {
       const blocks = await notion.blocks.children.list({ block_id: id });
@@ -72,8 +89,17 @@ function blockToHtml(block) {
         title: concatenateTitle(properties.Name.title),
         content: blocks.results.map(blockToHtml).join(""),
       });
+
+      if (id.replace(/-/g, "") === index) {
+        pages.push({
+          id,
+          title: concatenateTitle(properties.Name.title),
+          content: blocks.results.map(blockToHtml).join(""),
+          filename: "index.html",
+        });
+      }
     }
   );
 
-  Promise.all(pages.map(savePage));
+  Promise.all([...pages.map(savePage), copyStaticAssets()]);
 })();
