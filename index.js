@@ -8,9 +8,23 @@ function concatenateTitle(arr) {
 
 function textToHtml(text) {
   if (text.type === "text") {
-    const content = text.text.content
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+    let content = text.text.content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    if (text.annotations.bold) {
+      content = `<strong>${content}</strong>`;
+    }
+    if (text.annotations.italic) {
+      content = `<em>${content}</em>`;
+    }
+    if (text.annotations.underline) {
+      content = `<u>${content}</u>`;
+    }
+    if (text.annotations.strikethrough) {
+      content = `<strike>${content}</strike>`;
+    }
+    if (text.annotations.code) {
+      content = `<code>${content}</code>`;
+    }
+
     return text.text.link
       ? `<a href="${text.text.link.url}">${content}</a>`
       : content;
