@@ -158,5 +158,11 @@ function groupBulletedItems(blocks) {
     }
   );
 
+  try {
+    await fs.access(outputDir);
+  } catch {
+    await fs.mkdir(outputDir);
+  }
+
   Promise.all([...pages.map(savePage), copyStaticAssets()]);
 })();
