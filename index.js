@@ -82,6 +82,10 @@ function blockToHtml(block) {
     return `<p>${block.paragraph.text.map(textToHtml).join("")}</p>`;
   } else if (block.type === "heading_3") {
     return `<h3>${block.heading_3.text.map(textToHtml).join("")}</h3>`;
+  } else if (block.type === "toggle") {
+    return `<details><summary>${block.toggle.text
+      .map(textToHtml)
+      .join("")}</summary>TODO</details>`;
   } else {
     console.log("Unrecognized block --", block);
   }
