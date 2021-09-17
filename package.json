@@ -1,5 +1,5 @@
 {
   "dependencies": {
-    "notion-for-each-row": "^1.0.1"
+    "notion-for-each-row": "1.0.2"
   }
 }
