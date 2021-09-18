@@ -62,6 +62,7 @@ async function savePage({ id, title, content, filename }) {
       <link rel="stylesheet" href="/style.css">
     </head>
     <body>
+      <script>0</script>
       <main>
         <h1>${title}</h1>
         ${content}
