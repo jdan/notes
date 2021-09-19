@@ -6,7 +6,7 @@ function concatenateTitle(arr) {
   return arr.map((i) => i.text.content).join("");
 }
 
-function textToHtml(text) {
+function textToHtml(text, registerBacklink) {
   if (text.type === "text") {
     let content = text.text.content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     if (text.annotations.bold) {
@@ -29,6 +29,8 @@ function textToHtml(text) {
       ? `<a href="${text.text.link.url}">${content}</a>`
       : content;
   } else if (text.type === "mention") {
+    registerBacklink(text.mention.page.id);
+
     const content = text.plain_text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     return `<a href="/${text.mention.page.id}.html">${content}</a>`;
   } else {
@@ -50,12 +52,26 @@ async function copyStaticAssets() {
   );
 }
 
-async function savePage({ id, title, content, filename }) {
+async function savePage({ id, title, content, filename }, backlinks, allPages) {
   filename = filename || `${id}.html`;
+
+  const linkOfId = (id) => {
+    const page = allPages.find((entry) => entry.id === id);
+    if (page) {
+      return `<a href="/${page.filename || page.id}">${page.title}</a>`;
+    } else {
+      return `[${id}]`;
+    }
+  };
+  const footer = backlinks[id]
+    ? `<footer>Mentioned in:<ul>${backlinks[id]
+        .map((id) => `<li>${linkOfId(id)}</li>`)
+        .join("\n")}</ul></footer>`
+    : "";
 
   const body = `
     <!doctype html>
-    <html>
+    <html lang="en">
     <head>
       <title>${title}</title>
       <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -67,25 +83,30 @@ async function savePage({ id, title, content, filename }) {
         <h1>${title}</h1>
         ${content}
       </main>
+      ${footer}
     </body>
     </html>
   `;
   await fs.writeFile(path.join(outputDir, filename), body);
 }
 
-function blockToHtml(block) {
+function blockToHtml(block, registerBacklink) {
+  const textToHtml_ = (text) => textToHtml(text, registerBacklink);
+
   if (block.type === "bulleted_list_item") {
     // TODO: join <li>s under a single <ul>?
-    return `<li>${block.bulleted_list_item.text.map(textToHtml).join("")}</li>`;
+    return `<li>${block.bulleted_list_item.text
+      .map(textToHtml_)
+      .join("")}</li>`;
   } else if (block.type === "unsupported") {
     return "[unsupported]";
   } else if (block.type === "paragraph") {
-    return `<p>${block.paragraph.text.map(textToHtml).join("")}</p>`;
+    return `<p>${block.paragraph.text.map(textToHtml_).join("")}</p>`;
   } else if (block.type === "heading_3") {
-    return `<h3>${block.heading_3.text.map(textToHtml).join("")}</h3>`;
+    return `<h3>${block.heading_3.text.map(textToHtml_).join("")}</h3>`;
   } else if (block.type === "toggle") {
     return `<details><summary>${block.toggle.text
-      .map(textToHtml)
+      .map(textToHtml_)
       .join("")}</summary>TODO</details>`;
   } else {
     console.log("Unrecognized block --", block);
@@ -126,6 +147,7 @@ function groupBulletedItems(blocks) {
 
 (async () => {
   const pages = [];
+  const backlinks = {};
 
   await forEachRow(
     {
@@ -135,13 +157,24 @@ function groupBulletedItems(blocks) {
     async ({ id, properties }, notion) => {
       const title = concatenateTitle(properties.Name.title);
       const blocks = await notion.blocks.children.list({ block_id: id });
+      const filename = concatenateTitle(properties.Filename.rich_text);
+
+      const registerBacklink = (pageId) => {
+        if (backlinks[pageId]) {
+          backlinks[pageId].push(id);
+        } else {
+          backlinks[pageId] = [id];
+        }
+      };
 
       const groups = groupBulletedItems(blocks.results);
       const content = groups
         .map((entry) =>
           entry.type === "single"
-            ? blockToHtml(entry.block)
-            : `<ul>${entry.items.map(blockToHtml).join("")}</ul>`
+            ? blockToHtml(entry.block, registerBacklink)
+            : `<ul>${entry.items
+                .map((item) => blockToHtml(item, registerBacklink))
+                .join("")}</ul>`
         )
         .join("");
 
@@ -149,7 +182,7 @@ function groupBulletedItems(blocks) {
         id,
         title,
         content,
-        filename: concatenateTitle(properties.Filename.rich_text),
+        filename,
       });
     }
   );
@@ -160,5 +193,8 @@ function groupBulletedItems(blocks) {
     await fs.mkdir(outputDir);
   }
 
-  Promise.all([...pages.map(savePage), copyStaticAssets()]);
+  Promise.all([
+    ...pages.map((page) => savePage(page, backlinks, pages)),
+    copyStaticAssets(),
+  ]);
 })();
