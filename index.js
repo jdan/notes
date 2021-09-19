@@ -126,7 +126,6 @@ function groupBulletedItems(blocks) {
 
 (async () => {
   const pages = [];
-  const index = "0e7f88242f2a44c3b724d159a339aebc";
 
   await forEachRow(
     {
@@ -150,16 +149,8 @@ function groupBulletedItems(blocks) {
         id,
         title,
         content,
+        filename: concatenateTitle(properties.Filename.rich_text),
       });
-
-      if (id.replace(/-/g, "") === index) {
-        pages.push({
-          id,
-          title,
-          content,
-          filename: "index.html",
-        });
-      }
     }
   );
 
