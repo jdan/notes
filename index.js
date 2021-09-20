@@ -30,8 +30,9 @@ function textToHtml(text, registerBacklink) {
       : content;
   } else if (text.type === "mention") {
     registerBacklink(text.mention.page.id);
-
     const content = text.plain_text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    // TODO: text.mention.page.id -> filename
     return `<a href="/${text.mention.page.id}.html">${content}</a>`;
   } else {
     console.log("Unrecognized text --", text);
