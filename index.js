@@ -53,12 +53,10 @@ async function copyStaticAssets() {
 }
 
 async function savePage({ id, title, content, filename }, backlinks, allPages) {
-  filename = filename || `${id}.html`;
-
   const linkOfId = (id) => {
     const page = allPages.find((entry) => entry.id === id);
     if (page) {
-      return `<a href="/${page.filename || page.id}">${page.title}</a>`;
+      return `<a href="/${page.filename}">${page.title}</a>`;
     } else {
       return `[${id}]`;
     }
@@ -157,7 +155,8 @@ function groupBulletedItems(blocks) {
     async ({ id, properties }, notion) => {
       const title = concatenateTitle(properties.Name.title);
       const blocks = await notion.blocks.children.list({ block_id: id });
-      const filename = concatenateTitle(properties.Filename.rich_text);
+      const filename =
+        concatenateTitle(properties.Filename.rich_text) || `${id}.html`;
 
       const registerBacklink = (pageId) => {
         if (backlinks[pageId]) {
