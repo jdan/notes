@@ -6,7 +6,7 @@ function concatenateTitle(arr) {
   return arr.map((i) => i.text.content).join("");
 }
 
-function textToHtml(text, registerBacklink) {
+function textToHtml(text, registerBacklink, allPages) {
   if (text.type === "text") {
     let content = text.text.content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     if (text.annotations.bold) {
@@ -30,10 +30,8 @@ function textToHtml(text, registerBacklink) {
       : content;
   } else if (text.type === "mention") {
     registerBacklink(text.mention.page.id);
-    const content = text.plain_text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-    // TODO: text.mention.page.id -> filename
-    return `<a href="/${text.mention.page.id}.html">${content}</a>`;
+    // const content = text.plain_text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return linkOfId(allPages, text.mention.page.id);
   } else {
     console.log("Unrecognized text --", text);
   }
@@ -53,18 +51,19 @@ async function copyStaticAssets() {
   );
 }
 
+const linkOfId = (allPages, id) => {
+  const page = allPages.find((entry) => entry.id === id);
+  if (page) {
+    return `<a href="/${page.filename}">${page.title}</a>`;
+  } else {
+    return `[${id}]`;
+  }
+};
+
 async function savePage({ id, title, content, filename }, backlinks, allPages) {
-  const linkOfId = (id) => {
-    const page = allPages.find((entry) => entry.id === id);
-    if (page) {
-      return `<a href="/${page.filename}">${page.title}</a>`;
-    } else {
-      return `[${id}]`;
-    }
-  };
   const footer = backlinks[id]
     ? `<footer>Mentioned in:<ul>${backlinks[id]
-        .map((id) => `<li>${linkOfId(id)}</li>`)
+        .map((id) => `<li>${linkOfId(allPages, id)}</li>`)
         .join("\n")}</ul></footer>`
     : "";
 
@@ -89,8 +88,8 @@ async function savePage({ id, title, content, filename }, backlinks, allPages) {
   await fs.writeFile(path.join(outputDir, filename), body);
 }
 
-function blockToHtml(block, registerBacklink) {
-  const textToHtml_ = (text) => textToHtml(text, registerBacklink);
+function blockToHtml(block, registerBacklink, allPages) {
+  const textToHtml_ = (text) => textToHtml(text, registerBacklink, allPages);
 
   if (block.type === "bulleted_list_item") {
     // TODO: join <li>s under a single <ul>?
@@ -148,6 +147,7 @@ function groupBulletedItems(blocks) {
   const pages = [];
   const backlinks = {};
 
+  // Load all the pages
   await forEachRow(
     {
       token: process.env["NOTION_SECRET"],
@@ -159,33 +159,37 @@ function groupBulletedItems(blocks) {
       const filename =
         concatenateTitle(properties.Filename.rich_text) || `${id}.html`;
 
-      const registerBacklink = (pageId) => {
-        if (backlinks[pageId]) {
-          backlinks[pageId].push(id);
-        } else {
-          backlinks[pageId] = [id];
-        }
-      };
-
       const groups = groupBulletedItems(blocks.results);
-      const content = groups
-        .map((entry) =>
-          entry.type === "single"
-            ? blockToHtml(entry.block, registerBacklink)
-            : `<ul>${entry.items
-                .map((item) => blockToHtml(item, registerBacklink))
-                .join("")}</ul>`
-        )
-        .join("");
 
       pages.push({
         id,
         title,
-        content,
+        groups,
         filename,
       });
     }
   );
+
+  // Populate the page content and backlinks
+  pages.forEach((page) => {
+    page.content = page.groups
+      .map((entry) => {
+        const registerBacklink = (destinationId) => {
+          if (backlinks[destinationId]) {
+            backlinks[destinationId].push(page.id);
+          } else {
+            backlinks[destinationId] = [page.id];
+          }
+        };
+
+        return entry.type === "single"
+          ? blockToHtml(entry.block, registerBacklink, pages)
+          : `<ul>${entry.items
+              .map((item) => blockToHtml(item, registerBacklink, pages))
+              .join("")}</ul>`;
+      })
+      .join("");
+  });
 
   try {
     await fs.access(outputDir);
