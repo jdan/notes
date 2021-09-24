@@ -157,7 +157,8 @@ function groupBulletedItems(blocks) {
       const title = concatenateTitle(properties.Name.title);
       const blocks = await notion.blocks.children.list({ block_id: id });
       const filename =
-        concatenateTitle(properties.Filename.rich_text) || `${id}.html`;
+        concatenateTitle(properties.Filename.rich_text) ||
+        `${id.replace(/-/g, "").slice(0, 8)}.html`;
 
       const groups = groupBulletedItems(blocks.results);
 
