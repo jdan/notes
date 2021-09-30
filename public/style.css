@@ -10,8 +10,13 @@ body {
     Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 }
 
+code {
+  padding: 1em !important;
+}
+
 main,
 footer {
+  box-sizing: border-box;
   width: 660px;
   padding: 40px;
 }
@@ -31,4 +36,17 @@ footer ul {
 
 ul {
   padding-left: 1em;
+}
+
+@media (max-width: 660px) {
+  main,
+  footer {
+    width: 100%;
+    padding: 20px;
+  }
+
+  main {
+    border: none;
+    border-radius: 0;
+  }
 }
