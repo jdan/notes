@@ -1,6 +1,10 @@
 const fs = require("fs").promises;
 const path = require("path");
 const forEachRow = require("notion-for-each-row");
+const Prism = require("prismjs");
+const loadLanguages = require("prismjs/components/");
+
+loadLanguages(["ocaml"]);
 
 function concatenateTitle(arr) {
   return arr.map((i) => i.text.content).join("");
@@ -40,13 +44,13 @@ function textToHtml(text, registerBacklink, allPages) {
 const outputDir = path.join(__dirname, "build");
 
 async function copyStaticAssets() {
-  const assets = ["style.css"];
+  const assets = [
+    path.join(__dirname, "public/style.css"),
+    path.join(__dirname, "node_modules/prismjs/themes/prism-coy.css"),
+  ];
   return Promise.all(
     assets.map(async (asset) =>
-      fs.copyFile(
-        path.join(__dirname, "public", asset),
-        path.join(outputDir, asset)
-      )
+      fs.copyFile(asset, path.join(outputDir, path.basename(asset)))
     )
   );
 }
@@ -74,6 +78,7 @@ async function savePage({ id, title, content, filename }, backlinks, allPages) {
       <title>${title}</title>
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <link rel="stylesheet" href="/style.css">
+      <link rel="stylesheet" href="/prism-coy.css">
     </head>
     <body>
       <script>0</script>
@@ -106,6 +111,14 @@ function blockToHtml(block, registerBacklink, allPages) {
     return `<details><summary>${block.toggle.text
       .map(textToHtml_)
       .join("")}</summary>TODO</details>`;
+  } else if (block.type === "code") {
+    const language = block.code.language.toLowerCase();
+    const code = Prism.highlight(
+      concatenateTitle(block.code.text),
+      Prism.languages[language],
+      language
+    );
+    return `<pre><code class="language-${language}">${code}</code></pre>`;
   } else {
     console.log("Unrecognized block --", block);
   }

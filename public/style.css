@@ -12,13 +12,13 @@ body {
 
 main,
 footer {
-  width: 480px;
+  width: 660px;
   padding: 40px;
 }
 
 main {
   border: 1px solid black;
-  border-radius: 20px;
+  border-radius: 8px;
 }
 
 footer {
