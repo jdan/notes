@@ -6,7 +6,7 @@ const loadLanguages = require("prismjs/components/");
 
 loadLanguages(["ocaml"]);
 
-function concatenateTitle(arr) {
+function concatenateText(arr) {
   return arr.map((i) => i.text.content).join("");
 }
 
@@ -114,7 +114,7 @@ function blockToHtml(block, registerBacklink, allPages) {
   } else if (block.type === "code") {
     const language = block.code.language.toLowerCase();
     const code = Prism.highlight(
-      concatenateTitle(block.code.text),
+      concatenateText(block.code.text),
       Prism.languages[language],
       language
     );
@@ -167,10 +167,10 @@ function groupBulletedItems(blocks) {
       database: process.env["NOTION_DATABASE_ID"],
     },
     async ({ id, properties }, notion) => {
-      const title = concatenateTitle(properties.Name.title);
+      const title = concatenateText(properties.Name.title);
       const blocks = await notion.blocks.children.list({ block_id: id });
       const filename =
-        concatenateTitle(properties.Filename.rich_text) ||
+        concatenateText(properties.Filename.rich_text) ||
         `${id.replace(/-/g, "").slice(0, 8)}.html`;
 
       const groups = groupBulletedItems(blocks.results);
