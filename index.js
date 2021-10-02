@@ -85,8 +85,8 @@ async function savePage({ id, title, content, filename }, backlinks, allPages) {
       <main>
         <h1>${title}</h1>
         ${content}
+        ${footer}
       </main>
-      ${footer}
     </body>
     </html>
   `;
