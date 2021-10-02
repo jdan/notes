@@ -1,11 +1,41 @@
+:root {
+  --font-color: black;
+  --background-color: white;
+  --footer-label-color: #444444;
+  --dimmer: #e6e6e6;
+  --dimmest: #f6f6f6;
+  --link-color: rgba(55, 53, 47, 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --font-color: rgba(255, 255, 255, 0.9);
+    --background-color: #2f3437;
+    --footer-label-color: #eee;
+    --dimmer: #64686a;
+    --dimmest: #464b4f;
+    --link-color: #b2b4b5;
+  }
+}
+
 body {
+  background: var(--background-color);
+  color: var(--font-color);
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 }
 
-code {
+a {
+  color: var(--link-color);
+}
+
+a:visited {
+  color: var(--link-color);
+}
+
+pre code {
   padding: 1em 0 !important;
 }
 
@@ -27,7 +57,7 @@ footer label {
   display: block;
   font-size: 14px;
   text-transform: uppercase;
-  color: #444444;
+  color: var(--footer-label-color);
   margin-bottom: 8px;
 }
 
@@ -45,15 +75,22 @@ footer ul a {
   display: block;
   font-weight: bold;
   padding: 10px;
-  background: #f6f6f6;
+  background: var(--dimmest);
   border-radius: 4px;
-  color: black;
+  color: var(--font-color);
   text-decoration: none;
 }
 
 footer ul a:hover,
 footer ul a:focus {
-  background: #e6e6e6;
+  background: var(--dimmer);
+}
+
+p > code {
+  background: var(--dimmest);
+  font-weight: bold;
+  border-radius: 2px;
+  padding: 4px;
 }
 
 @media (max-width: 660px) {
@@ -63,7 +100,7 @@ footer ul a:focus {
     padding: 40px 20px;
   }
 
-  code {
+  pre code {
     font-size: 14px !important;
   }
 

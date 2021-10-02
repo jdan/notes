@@ -49,6 +49,7 @@ async function copyStaticAssets() {
   const assets = [
     path.join(__dirname, "public/style.css"),
     path.join(__dirname, "node_modules/prismjs/themes/prism-coy.css"),
+    path.join(__dirname, "node_modules/prismjs/themes/prism-tomorrow.css"),
     path.join(__dirname, "node_modules/katex/dist/katex.min.css"),
   ];
   return Promise.all(
@@ -82,7 +83,7 @@ async function savePage({ id, title, content, filename }, backlinks, allPages) {
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <link rel="stylesheet" href="/style.css">
-      <link rel="stylesheet" href="/prism-coy.css">
+      <link id="prisma" rel="stylesheet" href="/prism-coy.css">
       <link rel="stylesheet" href="/katex.min.css">
     </head>
     <body>
@@ -92,6 +93,29 @@ async function savePage({ id, title, content, filename }, backlinks, allPages) {
         ${content}
         ${footer}
       </main>
+      <script>
+        let stylesheet = document.getElementById("prisma")
+        function setTheme(matches) {
+          if (matches) {
+            stylesheet.setAttribute("href", "/prism-tomorrow.css")
+          } else {
+            stylesheet.setAttribute("href", "/prism-coy.css")
+          }
+        }
+
+        if (
+          window.matchMedia &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches
+        ) {
+          setTheme(true)
+        }
+
+        window
+          .matchMedia("(prefers-color-scheme: dark)")
+          .addEventListener("change", event => {
+            setTheme(event.matches)
+          })
+      </script>
     </body>
     </html>
   `;
