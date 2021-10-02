@@ -7,15 +7,13 @@
   --link-color: rgba(55, 53, 47, 0.4);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --font-color: rgba(255, 255, 255, 0.9);
-    --background-color: #2f3437;
-    --footer-label-color: #eee;
-    --dimmer: #64686a;
-    --dimmest: #464b4f;
-    --link-color: #b2b4b5;
-  }
+body.dark {
+  --font-color: rgba(255, 255, 255, 0.9);
+  --background-color: #2f3437;
+  --footer-label-color: #eee;
+  --dimmer: #64686a;
+  --dimmest: #464b4f;
+  --link-color: #b2b4b5;
 }
 
 body {
@@ -47,6 +45,19 @@ p > code {
   font-weight: bold;
   border-radius: 2px;
   padding: 2px 4px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+}
+
+#toggle-btn {
+  padding: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
 }
 
 main {

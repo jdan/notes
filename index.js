@@ -75,6 +75,8 @@ async function savePage({ id, title, content, filename }, backlinks, allPages) {
         .join("\n")}</ul></footer>`
     : "";
 
+  const script = await fs.readFile(path.join(__dirname, "public/script.js"));
+
   const body = `
     <!doctype html>
     <html lang="en">
@@ -83,39 +85,21 @@ async function savePage({ id, title, content, filename }, backlinks, allPages) {
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <link rel="stylesheet" href="/style.css">
-      <link id="prisma" rel="stylesheet" href="/prism-coy.css">
+      <link id="prism" rel="stylesheet" href="/prism-coy.css">
       <link rel="stylesheet" href="/katex.min.css">
     </head>
     <body>
       <script>0</script>
       <main>
+        <header>
+          <a href="/">Home</a>
+          <button id="toggle-btn" aria-label="enable dark theme">🌙</button>
+        </header>
         <h1>${title}</h1>
         ${content}
         ${footer}
       </main>
-      <script>
-        let stylesheet = document.getElementById("prisma")
-        function setTheme(matches) {
-          if (matches) {
-            stylesheet.setAttribute("href", "/prism-tomorrow.css")
-          } else {
-            stylesheet.setAttribute("href", "/prism-coy.css")
-          }
-        }
-
-        if (
-          window.matchMedia &&
-          window.matchMedia('(prefers-color-scheme: dark)').matches
-        ) {
-          setTheme(true)
-        }
-
-        window
-          .matchMedia("(prefers-color-scheme: dark)")
-          .addEventListener("change", event => {
-            setTheme(event.matches)
-          })
-      </script>
+      <script>${script}</script>
     </body>
     </html>
   `;
