@@ -79,6 +79,7 @@ async function savePage({ id, title, content, filename }, backlinks, allPages) {
     <html lang="en">
     <head>
       <title>${title}</title>
+      <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <link rel="stylesheet" href="/style.css">
       <link rel="stylesheet" href="/prism-coy.css">
