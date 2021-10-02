@@ -66,7 +66,7 @@ const linkOfId = (allPages, id) => {
 
 async function savePage({ id, title, content, filename }, backlinks, allPages) {
   const footer = backlinks[id]
-    ? `<footer>Mentioned in:<ul>${backlinks[id]
+    ? `<footer><label>mentioned in</label><ul>${backlinks[id]
         .map((id) => `<li>${linkOfId(allPages, id)}</li>`)
         .join("\n")}</ul></footer>`
     : "";
