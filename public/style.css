@@ -4,7 +4,7 @@
   --footer-label-color: #444444;
   --dimmer: #e6e6e6;
   --dimmest: #f6f6f6;
-  --link-color: rgba(55, 53, 47, 0.4);
+  --link-color: #787672;
   --image-width: 360px;
 }
 
@@ -29,6 +29,11 @@ body {
 
 a {
   color: var(--link-color);
+}
+
+a[href^="http"]::after {
+  content: "🔗";
+  font-size: 14px;
 }
 
 a:visited {
