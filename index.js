@@ -1,6 +1,7 @@
 const fs = require("fs").promises;
 const path = require("path");
 const forEachRow = require("notion-for-each-row");
+const katex = require("katex");
 const Prism = require("prismjs");
 const loadLanguages = require("prismjs/components/");
 
@@ -34,8 +35,9 @@ function textToHtml(text, registerBacklink, allPages) {
       : content;
   } else if (text.type === "mention") {
     registerBacklink(text.mention.page.id);
-    // const content = text.plain_text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     return linkOfId(allPages, text.mention.page.id);
+  } else if (text.type === "equation") {
+    return katex.renderToString(text.equation.expression);
   } else {
     console.log("Unrecognized text --", text);
   }
@@ -47,6 +49,7 @@ async function copyStaticAssets() {
   const assets = [
     path.join(__dirname, "public/style.css"),
     path.join(__dirname, "node_modules/prismjs/themes/prism-coy.css"),
+    path.join(__dirname, "node_modules/katex/dist/katex.min.css"),
   ];
   return Promise.all(
     assets.map(async (asset) =>
@@ -79,6 +82,7 @@ async function savePage({ id, title, content, filename }, backlinks, allPages) {
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <link rel="stylesheet" href="/style.css">
       <link rel="stylesheet" href="/prism-coy.css">
+      <link rel="stylesheet" href="/katex.min.css">
     </head>
     <body>
       <script>0</script>
@@ -119,6 +123,10 @@ function blockToHtml(block, registerBacklink, allPages) {
       language
     );
     return `<pre><code class="language-${language}">${code}</code></pre>`;
+  } else if (block.type === "equation") {
+    return katex.renderToString(block.equation.expression, {
+      displayMode: true,
+    });
   } else {
     console.log("Unrecognized block --", block);
   }
