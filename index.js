@@ -1,9 +1,12 @@
-const fs = require("fs").promises;
+const fs = require("fs");
+const https = require("https");
 const path = require("path");
 const forEachRow = require("notion-for-each-row");
 const katex = require("katex");
 const Prism = require("prismjs");
 const loadLanguages = require("prismjs/components/");
+
+const fsPromises = fs.promises;
 
 loadLanguages(["ocaml"]);
 
@@ -54,7 +57,7 @@ async function copyStaticAssets() {
   ];
   return Promise.all(
     assets.map(async (asset) =>
-      fs.copyFile(asset, path.join(outputDir, path.basename(asset)))
+      fsPromises.copyFile(asset, path.join(outputDir, path.basename(asset)))
     )
   );
 }
@@ -75,7 +78,9 @@ async function savePage({ id, title, content, filename }, backlinks, allPages) {
         .join("\n")}</ul></footer>`
     : "";
 
-  const script = await fs.readFile(path.join(__dirname, "public/script.js"));
+  const script = await fsPromises.readFile(
+    path.join(__dirname, "public/script.js")
+  );
 
   const body = `
     <!doctype html>
@@ -103,10 +108,36 @@ async function savePage({ id, title, content, filename }, backlinks, allPages) {
     </body>
     </html>
   `;
-  await fs.writeFile(path.join(outputDir, filename), body);
+  await fsPromises.writeFile(path.join(outputDir, filename), body);
 }
 
-function blockToHtml(block, registerBacklink, allPages) {
+function downloadImageBlock(block) {
+  const filename = `${block.id}.png`;
+  const dest = fs.createWriteStream(
+    path.join(__dirname, "build", `${block.id}.png`)
+  );
+  return new Promise((resolve) => {
+    https.get(block.image.file.url, (res) => {
+      res
+        .pipe(dest)
+        .on("finish", () => {
+          const caption = concatenateText(block.image.caption);
+          resolve(
+            `<figure>
+              <img alt="${caption}" src="/${filename}">
+              <figcaption>${caption}</figcaption>
+            </figure>`
+          );
+        })
+        .on("error", () => {
+          console.log("Image failed to write", block);
+          resolve();
+        });
+    });
+  });
+}
+
+async function blockToHtml(block, registerBacklink, allPages) {
   const textToHtml_ = (text) => textToHtml(text, registerBacklink, allPages);
 
   if (block.type === "bulleted_list_item") {
@@ -136,6 +167,12 @@ function blockToHtml(block, registerBacklink, allPages) {
     return katex.renderToString(block.equation.expression, {
       displayMode: true,
     });
+  } else if (block.type === "image") {
+    if (block.image.type !== "file") {
+      console.log("Unrecognized image", block);
+    } else {
+      return downloadImageBlock(block);
+    }
   } else {
     console.log("Unrecognized block --", block);
   }
@@ -203,30 +240,38 @@ function groupBulletedItems(blocks) {
   );
 
   // Populate the page content and backlinks
-  pages.forEach((page) => {
-    page.content = page.groups
-      .map((entry) => {
-        const registerBacklink = (destinationId) => {
-          if (backlinks[destinationId]) {
-            backlinks[destinationId].push(page.id);
-          } else {
-            backlinks[destinationId] = [page.id];
-          }
-        };
+  await Promise.all(
+    pages.map(async (page) => {
+      const parts = await Promise.all(
+        page.groups.map(async (entry) => {
+          const registerBacklink = (destinationId) => {
+            if (backlinks[destinationId]) {
+              backlinks[destinationId].push(page.id);
+            } else {
+              backlinks[destinationId] = [page.id];
+            }
+          };
 
-        return entry.type === "single"
-          ? blockToHtml(entry.block, registerBacklink, pages)
-          : `<ul>${entry.items
-              .map((item) => blockToHtml(item, registerBacklink, pages))
-              .join("")}</ul>`;
-      })
-      .join("");
-  });
+          if (entry.type === "single") {
+            return blockToHtml(entry.block, registerBacklink, pages);
+          } else {
+            const items = await Promise.all(
+              entry.items.map((item) =>
+                blockToHtml(item, registerBacklink, pages)
+              )
+            );
+            return `<ul>${items.join("")}</ul>`;
+          }
+        })
+      );
+      page.content = parts.join("");
+    })
+  );
 
   try {
-    await fs.access(outputDir);
+    await fsPromises.access(outputDir);
   } catch {
-    await fs.mkdir(outputDir);
+    await fsPromises.mkdir(outputDir);
   }
 
   Promise.all([

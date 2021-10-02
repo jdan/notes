@@ -5,6 +5,7 @@
   --dimmer: #e6e6e6;
   --dimmest: #f6f6f6;
   --link-color: rgba(55, 53, 47, 0.4);
+  --image-width: 360px;
 }
 
 body.dark {
@@ -45,6 +46,13 @@ p > code {
   font-weight: bold;
   border-radius: 2px;
   padding: 2px 4px;
+}
+
+figure {
+  margin: 0 auto;
+  display: flex;
+  max-width: var(--image-width);
+  flex-direction: column;
 }
 
 header {
@@ -108,6 +116,10 @@ footer ul a:focus {
 }
 
 @media (max-width: 660px) {
+  :root {
+    --image-width: 100%;
+  }
+
   main {
     width: 100%;
     margin: 0;
