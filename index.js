@@ -8,7 +8,7 @@ const loadLanguages = require("prismjs/components/");
 
 const fsPromises = fs.promises;
 
-loadLanguages(["ocaml"]);
+loadLanguages(["ocaml", "scheme"]);
 
 function concatenateText(arr) {
   return arr.map((i) => i.text.content).join("");
