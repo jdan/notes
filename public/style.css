@@ -60,6 +60,10 @@ figure {
   flex-direction: column;
 }
 
+figure img {
+  display: block;
+}
+
 header {
   display: flex;
   align-items: center;
