@@ -61,7 +61,7 @@ figure {
 }
 
 figure img {
-  display: block;
+  object-fit: contain;
 }
 
 header {
