@@ -113,7 +113,7 @@ async function savePage({ id, title, content, filename }, backlinks, allPages) {
   await fsPromises.writeFile(path.join(outputDir, filename), body);
 }
 
-function downloadImageBlock(block) {
+function downloadImageBlock(block, blockId) {
   const filename = `${block.id}.png`;
   const dest = fs.createWriteStream(
     path.join(__dirname, "build", `${block.id}.png`)
@@ -125,7 +125,7 @@ function downloadImageBlock(block) {
         .on("finish", () => {
           const caption = concatenateText(block.image.caption);
           resolve(
-            `<figure>
+            `<figure id="${blockId}">
               <img alt="${caption}" src="/${filename}">
               <figcaption>${caption}</figcaption>
             </figure>`
@@ -141,20 +141,33 @@ function downloadImageBlock(block) {
 
 async function blockToHtml(block, registerBacklink, allPages) {
   const textToHtml_ = (text) => textToHtml(text, registerBacklink, allPages);
+  const blockId = "b" + block.id.replace(/-/g, "").slice(0, 8);
 
   if (block.type === "bulleted_list_item") {
     // TODO: join <li>s under a single <ul>?
-    return `<li>${block.bulleted_list_item.text
+    return `<li id="${blockId}">${block.bulleted_list_item.text
       .map(textToHtml_)
       .join("")}</li>`;
   } else if (block.type === "unsupported") {
     return "[unsupported]";
   } else if (block.type === "paragraph") {
-    return `<p>${block.paragraph.text.map(textToHtml_).join("")}</p>`;
+    return `<p id="${blockId}">${block.paragraph.text
+      .map(textToHtml_)
+      .join("")}</p>`;
+  } else if (block.type === "heading_1") {
+    return `<h1 id="${blockId}">${block.heading_1.text
+      .map(textToHtml_)
+      .join("")}</h1>`;
+  } else if (block.type === "heading_2") {
+    return `<h2 id="${blockId}">${block.heading_2.text
+      .map(textToHtml_)
+      .join("")}</h2>`;
   } else if (block.type === "heading_3") {
-    return `<h3>${block.heading_3.text.map(textToHtml_).join("")}</h3>`;
+    return `<h3 id="${blockId}">${block.heading_3.text
+      .map(textToHtml_)
+      .join("")}</h3>`;
   } else if (block.type === "toggle") {
-    return `<details><summary>${block.toggle.text
+    return `<details id="${blockId}"><summary>${block.toggle.text
       .map(textToHtml_)
       .join("")}</summary>TODO</details>`;
   } else if (block.type === "code") {
@@ -164,7 +177,7 @@ async function blockToHtml(block, registerBacklink, allPages) {
       Prism.languages[language],
       language
     );
-    return `<pre><code class="language-${language}">${code}</code></pre>`;
+    return `<pre id="${blockId}"><code class="language-${language}">${code}</code></pre>`;
   } else if (block.type === "equation") {
     return katex.renderToString(block.equation.expression, {
       displayMode: true,
@@ -173,7 +186,7 @@ async function blockToHtml(block, registerBacklink, allPages) {
     if (block.image.type !== "file") {
       console.log("Unrecognized image", block);
     } else {
-      return downloadImageBlock(block);
+      return downloadImageBlock(block, blockId);
     }
   } else {
     console.log("Unrecognized block --", block);
