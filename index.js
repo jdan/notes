@@ -90,6 +90,8 @@ async function savePage({ id, title, content, filename }, backlinks, allPages) {
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <link rel="stylesheet" href="/style.css">
+      <link rel="preload" href="/prism-coy.css" as="style">
+      <link rel="preload" href="/prism-tomorrow.css" as="style">
       <link id="prism" rel="stylesheet" href="/prism-coy.css">
       <link rel="stylesheet" href="/katex.min.css">
     </head>
