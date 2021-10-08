@@ -33,9 +33,27 @@ function textToHtml(text, registerBacklink, allPages) {
       content = `<code>${content}</code>`;
     }
 
-    return text.text.link
-      ? `<a href="${text.text.link.url}">${content}</a>`
-      : content;
+    if (text.text.link) {
+      // Links to other pages (not mentions), should also get back-linked
+      if (/^\//.test(text.text.link.url)) {
+        const id = text.text.link.url.slice(1);
+        // Hack: format into "c3d85220-62aa-457a-b414-90c5e9929790"
+        const backlinkFriendlyId = [
+          id.slice(0, 8),
+          id.slice(8, 12),
+          id.slice(12, 16),
+          id.slice(16, 20),
+          id.slice(20, 32),
+        ].join("-");
+
+        registerBacklink(backlinkFriendlyId);
+        return linkOfId(allPages, backlinkFriendlyId);
+      } else {
+        return `<a href="${text.text.link.url}">${content}</a>`;
+      }
+    } else {
+      return content;
+    }
   } else if (text.type === "mention") {
     registerBacklink(text.mention.page.id);
     return linkOfId(allPages, text.mention.page.id);
@@ -144,7 +162,6 @@ async function blockToHtml(block, registerBacklink, allPages) {
   const blockId = "b" + block.id.replace(/-/g, "").slice(0, 8);
 
   if (block.type === "bulleted_list_item") {
-    // TODO: join <li>s under a single <ul>?
     return `<li id="${blockId}">${block.bulleted_list_item.text
       .map(textToHtml_)
       .join("")}</li>`;
