@@ -8,7 +8,7 @@ const loadLanguages = require("prismjs/components/");
 
 const fsPromises = fs.promises;
 
-loadLanguages(["ocaml", "scheme"]);
+loadLanguages(["ocaml", "scheme", "diff", "shell", "docker"]);
 
 function concatenateText(arr) {
   return arr.map((i) => i.text.content).join("");
@@ -172,12 +172,20 @@ async function blockToHtml(block, registerBacklink, allPages) {
       .join("")}</summary>TODO</details>`;
   } else if (block.type === "code") {
     const language = block.code.language.toLowerCase();
-    const code = Prism.highlight(
-      concatenateText(block.code.text),
-      Prism.languages[language],
-      language
-    );
-    return `<pre id="${blockId}"><code class="language-${language}">${code}</code></pre>`;
+    if (language !== "plain text" && !Prism.languages[language]) {
+      console.log("Unrecognized language --", language);
+    }
+    const code = Prism.languages[language]
+      ? Prism.highlight(
+          concatenateText(block.code.text),
+          Prism.languages[language],
+          language
+        )
+      : concatenateText(block.code.text);
+    return `<pre id="${blockId}"><code class="language-${language.replace(
+      /\s/g,
+      "-"
+    )}">${code}</code></pre>`;
   } else if (block.type === "equation") {
     return katex.renderToString(block.equation.expression, {
       displayMode: true,
