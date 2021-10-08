@@ -47,7 +47,9 @@ function textToHtml(text, registerBacklink, allPages) {
         ].join("-");
 
         registerBacklink(backlinkFriendlyId);
-        return linkOfId(allPages, backlinkFriendlyId);
+        return linkOfId(allPages, backlinkFriendlyId, {
+          overwriteTitle: content,
+        });
       } else {
         return `<a href="${text.text.link.url}">${content}</a>`;
       }
@@ -80,10 +82,12 @@ async function copyStaticAssets() {
   );
 }
 
-const linkOfId = (allPages, id) => {
+const linkOfId = (allPages, id, args = {}) => {
   const page = allPages.find((entry) => entry.id === id);
   if (page) {
-    return `<a href="/${page.filename}">${page.title}</a>`;
+    return `<a href="/${page.filename}">${
+      args.overwriteTitle || page.title
+    }</a>`;
   } else {
     return `[${id}]`;
   }
