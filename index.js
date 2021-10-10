@@ -194,33 +194,26 @@ function downloadImageBlock(block, blockId) {
 }
 
 async function blockToHtml(block, pageId, allPages) {
-  const textToHtml_ = (text) => textToHtml(pageId, text, allPages);
+  const textToHtml_ = (texts) =>
+    texts.map((text) => textToHtml(pageId, text, allPages)).join("");
   const blockId = "b" + block.id.replace(/-/g, "").slice(0, 8);
 
   if (block.type === "bulleted_list_item") {
-    return `<li id="${blockId}">${block.bulleted_list_item.text
-      .map(textToHtml_)
-      .join("")}</li>`;
+    return `<li id="${blockId}">${textToHtml_(
+      block.bulleted_list_item.text
+    )}</li>`;
   } else if (block.type === "paragraph") {
-    return `<p id="${blockId}">${block.paragraph.text
-      .map(textToHtml_)
-      .join("")}</p>`;
+    return `<p id="${blockId}">${textToHtml_(block.paragraph.text)}</p>`;
   } else if (block.type === "heading_1") {
-    return `<h1 id="${blockId}">${block.heading_1.text
-      .map(textToHtml_)
-      .join("")}</h1>`;
+    return `<h1 id="${blockId}">${textToHtml_(block.heading_1.text)}</h1>`;
   } else if (block.type === "heading_2") {
-    return `<h2 id="${blockId}">${block.heading_2.text
-      .map(textToHtml_)
-      .join("")}</h2>`;
+    return `<h2 id="${blockId}">${textToHtml_(block.heading_2.text)}</h2>`;
   } else if (block.type === "heading_3") {
-    return `<h3 id="${blockId}">${block.heading_3.text
-      .map(textToHtml_)
-      .join("")}</h3>`;
+    return `<h3 id="${blockId}">${textToHtml_(block.heading_3.text)}</h3>`;
   } else if (block.type === "toggle") {
-    return `<details id="${blockId}"><summary>${block.toggle.text
-      .map(textToHtml_)
-      .join("")}</summary>TODO</details>`;
+    return `<details id="${blockId}"><summary>${textToHtml_(
+      block.toggle.text
+    )}</summary>TODO</details>`;
   } else if (block.type === "code") {
     const language = block.code.language.toLowerCase();
     if (language !== "plain text" && !Prism.languages[language]) {
@@ -252,7 +245,7 @@ async function blockToHtml(block, pageId, allPages) {
       <input type="checkbox" onclick="return false" ${
         block.to_do.checked ? "checked" : ""
       }>
-      ${block.to_do.text.map(textToHtml_).join("")}
+      ${textToHtml_(block.to_do.text)}
     </label></div>`;
   } else if (block.type === "unsupported") {
     return "[unsupported]";
