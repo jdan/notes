@@ -34,7 +34,7 @@ function relativeDate(str) {
   return formatted[0].toUpperCase() + formatted.slice(1);
 }
 
-function textToHtml(text, registerBacklink, allPages) {
+function textToHtml(pageId, text, allPages) {
   if (text.type === "text") {
     let content = text.text.content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     if (text.annotations.bold) {
@@ -66,7 +66,7 @@ function textToHtml(text, registerBacklink, allPages) {
           id.slice(20, 32),
         ].join("-");
 
-        registerBacklink(backlinkFriendlyId);
+        registerBacklink(pageId, backlinkFriendlyId);
         return linkOfId(allPages, backlinkFriendlyId, {
           overwriteTitle: content,
         });
@@ -78,7 +78,7 @@ function textToHtml(text, registerBacklink, allPages) {
     }
   } else if (text.type === "mention") {
     if (text.mention.type === "page") {
-      registerBacklink(text.mention.page.id);
+      registerBacklink(pageId, text.mention.page.id);
       return linkOfId(allPages, text.mention.page.id);
     } else if (text.mention.type === "date") {
       return relativeDate(text.mention.date.start);
@@ -188,8 +188,8 @@ function downloadImageBlock(block, blockId) {
   });
 }
 
-async function blockToHtml(block, registerBacklink, allPages) {
-  const textToHtml_ = (text) => textToHtml(text, registerBacklink, allPages);
+async function blockToHtml(block, pageId, allPages) {
+  const textToHtml_ = (text) => textToHtml(pageId, text, allPages);
   const blockId = "b" + block.id.replace(/-/g, "").slice(0, 8);
 
   if (block.type === "bulleted_list_item") {
@@ -288,9 +288,17 @@ function groupBulletedItems(blocks) {
   return result;
 }
 
+const backlinks = {};
+const registerBacklink = (sourceId, destinationId) => {
+  if (backlinks[destinationId]) {
+    backlinks[destinationId].push(sourceId);
+  } else {
+    backlinks[destinationId] = [sourceId];
+  }
+};
+
 (async () => {
   const pages = [];
-  const backlinks = {};
 
   // Make sure outputDir exists
   try {
@@ -329,21 +337,11 @@ function groupBulletedItems(blocks) {
     pages.map(async (page) => {
       const parts = await Promise.all(
         page.groups.map(async (entry) => {
-          const registerBacklink = (destinationId) => {
-            if (backlinks[destinationId]) {
-              backlinks[destinationId].push(page.id);
-            } else {
-              backlinks[destinationId] = [page.id];
-            }
-          };
-
           if (entry.type === "single") {
-            return blockToHtml(entry.block, registerBacklink, pages);
+            return blockToHtml(entry.block, page.id, pages);
           } else {
             const items = await Promise.all(
-              entry.items.map((item) =>
-                blockToHtml(item, registerBacklink, pages)
-              )
+              entry.items.map((item) => blockToHtml(item, page.id, pages))
             );
             return `<ul>${items.join("")}</ul>`;
           }
