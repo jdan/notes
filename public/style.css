@@ -65,6 +65,12 @@ figure img {
   height: auto;
 }
 
+figcaption {
+  font-size: 14px;
+  color: var(--link-color);
+  margin-top: 4px;
+}
+
 header {
   display: flex;
   align-items: center;
