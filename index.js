@@ -291,6 +291,13 @@ function groupBulletedItems(blocks) {
   const pages = [];
   const backlinks = {};
 
+  // Make sure outputDir exists
+  try {
+    await fsPromises.access(outputDir);
+  } catch {
+    await fsPromises.mkdir(outputDir);
+  }
+
   // Load all the pages
   await forEachRow(
     {
@@ -344,12 +351,6 @@ function groupBulletedItems(blocks) {
       page.content = parts.join("");
     })
   );
-
-  try {
-    await fsPromises.access(outputDir);
-  } catch {
-    await fsPromises.mkdir(outputDir);
-  }
 
   Promise.all([
     ...pages.map((page) => savePage(page, backlinks, pages)),
