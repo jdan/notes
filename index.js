@@ -167,24 +167,29 @@ function downloadImageBlock(block, blockId) {
   const dest = fs.createWriteStream(
     path.join(__dirname, "build", `${block.id}.png`)
   );
+
   return new Promise((resolve) => {
-    https.get(block.image.file.url, (res) => {
-      res
-        .pipe(dest)
-        .on("finish", () => {
-          const caption = concatenateText(block.image.caption);
-          resolve(
-            `<figure id="${blockId}">
-              <img alt="${caption}" src="/${filename}">
-              <figcaption>${caption}</figcaption>
-            </figure>`
-          );
-        })
-        .on("error", () => {
-          console.log("Image failed to write", block);
-          resolve();
-        });
-    });
+    const caption = concatenateText(block.image.caption);
+    const html = `<figure id="${blockId}">
+      <img alt="${caption}" src="/${filename}">
+      <figcaption>${caption}</figcaption>
+    </figure>`;
+
+    if (fs.existsSync(dest)) {
+      resolve(html);
+    } else {
+      https.get(block.image.file.url, (res) => {
+        res
+          .pipe(dest)
+          .on("finish", () => {
+            resolve(html);
+          })
+          .on("error", () => {
+            console.log("Image failed to write", block);
+            resolve();
+          });
+      });
+    }
   });
 }
 
@@ -301,9 +306,7 @@ const registerBacklink = (sourceId, destinationId) => {
   const pages = [];
 
   // Make sure outputDir exists
-  try {
-    await fsPromises.access(outputDir);
-  } catch {
+  if (!fs.existsSync(outputDir)) {
     await fsPromises.mkdir(outputDir);
   }
 
