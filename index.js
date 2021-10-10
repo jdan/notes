@@ -195,8 +195,6 @@ async function blockToHtml(block, registerBacklink, allPages) {
     return `<li id="${blockId}">${block.bulleted_list_item.text
       .map(textToHtml_)
       .join("")}</li>`;
-  } else if (block.type === "unsupported") {
-    return "[unsupported]";
   } else if (block.type === "paragraph") {
     return `<p id="${blockId}">${block.paragraph.text
       .map(textToHtml_)
@@ -243,6 +241,15 @@ async function blockToHtml(block, registerBacklink, allPages) {
     } else {
       return downloadImageBlock(block, blockId);
     }
+  } else if (block.type === "to_do") {
+    return `<div><label>
+      <input type="checkbox" onclick="return false" ${
+        block.to_do.checked ? "checked" : ""
+      }>
+      ${block.to_do.text.map(textToHtml_).join("")}
+    </label></div>`;
+  } else if (block.type === "unsupported") {
+    return "[unsupported]";
   } else {
     console.log("Unrecognized block --", block);
   }
