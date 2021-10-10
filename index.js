@@ -14,6 +14,26 @@ function concatenateText(arr) {
   return arr.map((i) => i.text.content).join("");
 }
 
+function relativeDate(str) {
+  const [year, month, day] = str.split("-").map((i) => parseInt(i));
+
+  const date = new Date();
+  date.setFullYear(year);
+  date.setMonth(month - 1);
+  date.setDate(day);
+
+  const deltaDays = Math.round(
+    (date.getTime() - Date.now()) / (1000 * 3600 * 24)
+  );
+
+  const relative = new Intl.RelativeTimeFormat("en", {
+    numeric: "auto",
+  });
+
+  const formatted = relative.format(deltaDays, "days");
+  return formatted[0].toUpperCase() + formatted.slice(1);
+}
+
 function textToHtml(text, registerBacklink, allPages) {
   if (text.type === "text") {
     let content = text.text.content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -57,8 +77,14 @@ function textToHtml(text, registerBacklink, allPages) {
       return content;
     }
   } else if (text.type === "mention") {
-    registerBacklink(text.mention.page.id);
-    return linkOfId(allPages, text.mention.page.id);
+    if (text.mention.type === "page") {
+      registerBacklink(text.mention.page.id);
+      return linkOfId(allPages, text.mention.page.id);
+    } else if (text.mention.type === "date") {
+      return relativeDate(text.mention.date.start);
+    } else {
+      console.log("Unrecognized mention --", text);
+    }
   } else if (text.type === "equation") {
     return katex.renderToString(text.equation.expression);
   } else {
