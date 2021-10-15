@@ -197,6 +197,9 @@ async function blockToHtml(block, pageId, allPages) {
   const textToHtml_ = (texts) =>
     texts.map((text) => textToHtml(pageId, text, allPages)).join("");
   const blockId = "b" + block.id.replace(/-/g, "").slice(0, 8);
+  const children = await Promise.all(
+    block.children.map((block) => blockToHtml(block, pageId, allPages))
+  );
 
   if (block.type === "bulleted_list_item") {
     return `<li id="${blockId}">${textToHtml_(
@@ -213,7 +216,7 @@ async function blockToHtml(block, pageId, allPages) {
   } else if (block.type === "toggle") {
     return `<details id="${blockId}"><summary>${textToHtml_(
       block.toggle.text
-    )}</summary>TODO</details>`;
+    )}</summary>${children.join("\n")}</details>`;
   } else if (block.type === "code") {
     const language = block.code.language.toLowerCase();
     if (language !== "plain text" && !Prism.languages[language]) {
@@ -248,7 +251,10 @@ async function blockToHtml(block, pageId, allPages) {
       ${textToHtml_(block.to_do.text)}
     </label></div>`;
   } else if (block.type === "quote") {
-    return `<blockquote>${textToHtml_(block.quote.text)}</blockquote>`;
+    return `<blockquote>
+      <p>${textToHtml_(block.quote.text)}</p>
+      ${children.join("\n")}
+    </blockquote>`;
   } else if (block.type === "unsupported") {
     return "[unsupported]";
   } else {
@@ -297,6 +303,22 @@ const registerBacklink = (sourceId, destinationId) => {
   }
 };
 
+async function getChildren(notion, id) {
+  // TODO: Paginate?
+  const req = await notion.blocks.children.list({ block_id: id });
+  const blocks = req.results;
+  return Promise.all(
+    blocks.map(async (block) => {
+      if (block.has_children) {
+        block.children = await getChildren(notion, block.id);
+      } else {
+        block.children = [];
+      }
+      return block;
+    })
+  );
+}
+
 (async () => {
   const pages = [];
 
@@ -313,13 +335,14 @@ const registerBacklink = (sourceId, destinationId) => {
     },
     async ({ id, properties }, notion) => {
       const title = concatenateText(properties.Name.title);
-      const blocks = await notion.blocks.children.list({ block_id: id });
+      const blocks = await getChildren(notion, id);
       const filename =
         (properties.Filename
           ? concatenateText(properties.Filename.rich_text)
           : "") || `${id.replace(/-/g, "").slice(0, 8)}.html`;
 
-      const groups = groupBulletedItems(blocks.results);
+      // TODO: Needs to be recursive too?
+      const groups = groupBulletedItems(blocks);
 
       pages.push({
         id,

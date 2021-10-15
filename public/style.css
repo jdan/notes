@@ -134,7 +134,16 @@ footer ul a:focus {
 blockquote {
   border-left: 4px solid var(--link-color);
   margin: 0;
-  padding: 8px 16px;
+  padding: 0 14px;
+}
+
+blockquote p {
+  margin: 0;
+  padding: 3px 2px;
+}
+
+details > :not(summary) {
+  margin-left: 16px;
 }
 
 @media (max-width: 660px) {
