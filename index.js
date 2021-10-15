@@ -247,6 +247,8 @@ async function blockToHtml(block, pageId, allPages) {
       }>
       ${textToHtml_(block.to_do.text)}
     </label></div>`;
+  } else if (block.type === "quote") {
+    return `<blockquote>${textToHtml_(block.quote.text)}</blockquote>`;
   } else if (block.type === "unsupported") {
     return "[unsupported]";
   } else {

@@ -131,6 +131,12 @@ footer ul a:focus {
   background: var(--dimmer);
 }
 
+blockquote {
+  border-left: 4px solid var(--link-color);
+  margin: 0;
+  padding: 8px 16px;
+}
+
 @media (max-width: 660px) {
   :root {
     --image-width: 100%;
