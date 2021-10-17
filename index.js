@@ -2,6 +2,7 @@ const fs = require("fs");
 const https = require("https");
 const path = require("path");
 const forEachRow = require("notion-for-each-row");
+const innertext = require("innertext");
 const katex = require("katex");
 const Prism = require("prismjs");
 const loadLanguages = require("prismjs/components/");
@@ -131,6 +132,10 @@ async function savePage({ id, title, content, filename }, backlinks, allPages) {
     path.join(__dirname, "public/script.js")
   );
 
+  // Converting hyperlinks to text leaves a space before the period, remove it
+  const description =
+    innertext(content).slice(0, 280).replace(/ \./g, ".") + "...";
+
   const body = `
     <!doctype html>
     <html lang="en">
@@ -138,6 +143,17 @@ async function savePage({ id, title, content, filename }, backlinks, allPages) {
       <title>${title}</title>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
+
+      <meta property="og:title" content="${title}" />
+      <meta name="Description" content="${description}" />
+      <meta property="og:description" content="${description}" />
+      <meta property="og:image" content="/me.png" />
+
+      <meta name="twitter:card" content="summary" />
+      <meta name="twitter:site" content="@jdan" />
+      <meta name="twitter:title" content="${title}" />
+      <meta name="twitter:description" content="${description}" />
+
       <link rel="stylesheet" href="/style.css">
       <link rel="preload" href="/prism-coy.css" as="style">
       <link rel="preload" href="/prism-tomorrow.css" as="style">

@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "innertext": "^1.0.3",
     "katex": "^0.13.18",
     "notion-for-each-row": "1.0.2",
     "prismjs": "^1.25.0"
