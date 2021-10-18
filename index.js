@@ -109,20 +109,22 @@ async function copyStaticAssets() {
   );
 }
 
-const linkOfId = (allPages, id, args = {}) => {
+const pageUrlOfId = (allPages, id) => {
   const page = allPages.find((entry) => entry.id === id);
-  if (page) {
-    return `<a href="/${page.filename}">${
-      args.overwriteTitle || page.title
-    }</a>`;
-  } else {
-    return `[${id}]`;
-  }
+  return { page, url: page ? `/${page.filename}` : null };
+};
+
+const linkOfId = (allPages, id, args = {}) => {
+  const { page, url } = pageUrlOfId(allPages, id);
+  return url
+    ? `<a href="${url}">${args.overwriteTitle || page.title}</a>`
+    : `[${id}]`;
 };
 
 async function savePage(
   { id, title, favicon, content, filename },
   backlinks,
+  forwardLinks,
   allPages
 ) {
   const footer = backlinks[id]
@@ -130,6 +132,15 @@ async function savePage(
         .sort()
         .map((id) => `<li>${linkOfId(allPages, id)}</li>`)
         .join("\n")}</ul></footer>`
+    : "";
+
+  const prefetches = forwardLinks[id]
+    ? forwardLinks[id]
+        .map(
+          (id) =>
+            `<link rel="prefetch" href="${pageUrlOfId(allPages, id).url}">`
+        )
+        .join("\n")
     : "";
 
   const script = await fsPromises.readFile(
@@ -155,6 +166,8 @@ async function savePage(
       <link rel="stylesheet" href="/style.css">
       <link rel="preload" href="/prism-coy.css" as="style">
       <link rel="preload" href="/prism-tomorrow.css" as="style">
+      ${prefetches}
+
       <link id="prism" rel="stylesheet" href="/prism-coy.css">
       <link rel="stylesheet" href="/katex.min.css">
     </head>
@@ -309,11 +322,18 @@ function groupBulletedItems(blocks) {
 }
 
 const backlinks = {};
+const forwardLinks = {};
 const registerBacklink = (sourceId, destinationId) => {
   if (backlinks[destinationId]) {
     backlinks[destinationId].push(sourceId);
   } else {
     backlinks[destinationId] = [sourceId];
+  }
+
+  if (forwardLinks[sourceId]) {
+    forwardLinks[sourceId].push(destinationId);
+  } else {
+    forwardLinks[sourceId] = [destinationId];
   }
 };
 
@@ -411,7 +431,7 @@ async function saveFavicon(emoji) {
   );
 
   Promise.all([
-    ...pages.map((page) => savePage(page, backlinks, pages)),
+    ...pages.map((page) => savePage(page, backlinks, forwardLinks, pages)),
     copyStaticAssets(),
   ]);
 })();
