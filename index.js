@@ -1,6 +1,7 @@
 const fs = require("fs");
 const https = require("https");
 const path = require("path");
+const emojiUnicode = require("emoji-unicode");
 const forEachRow = require("notion-for-each-row");
 const innertext = require("innertext");
 const katex = require("katex");
@@ -120,7 +121,11 @@ const linkOfId = (allPages, id, args = {}) => {
   }
 };
 
-async function savePage({ id, title, content, filename }, backlinks, allPages) {
+async function savePage(
+  { id, title, favicon, content, filename },
+  backlinks,
+  allPages
+) {
   const footer = backlinks[id]
     ? `<footer><label>mentioned in</label><ul>${backlinks[id]
         .sort()
@@ -141,6 +146,7 @@ async function savePage({ id, title, content, filename }, backlinks, allPages) {
     <html lang="en">
     <head>
       <title>${title}</title>
+      <link rel="Shortcut Icon" type="image/x-icon" href="/${favicon}" />
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -335,6 +341,24 @@ async function getChildren(notion, id) {
   );
 }
 
+async function saveFavicon(emoji) {
+  const codepoints = emojiUnicode(emoji).split(" ").join("-");
+  const basename = `${codepoints}.png`;
+  const filename = path.join(
+    __dirname,
+    "node_modules/emoji-datasource-apple/img/apple/64",
+    basename
+  );
+  if (!fs.existsSync(filename)) {
+    console.log("Unknown emoji --", emoji, codepoints);
+  }
+  const dest = path.join(outputDir, basename);
+  if (!fs.existsSync(dest)) {
+    await fsPromises.copyFile(filename, dest);
+  }
+  return basename;
+}
+
 (async () => {
   const pages = [];
 
@@ -349,9 +373,14 @@ async function getChildren(notion, id) {
       token: process.env["NOTION_SECRET"],
       database: process.env["NOTION_DATABASE_ID"],
     },
-    async ({ id, properties }, notion) => {
+    async (page, notion) => {
+      const { id, icon, properties } = page;
+
+      let emoji = icon ? icon.emoji : "💡";
+
       const title = concatenateText(properties.Name.title);
       const blocks = await getChildren(notion, id);
+      const favicon = await saveFavicon(emoji);
       const filename =
         (properties.Filename
           ? concatenateText(properties.Filename.rich_text)
@@ -362,6 +391,7 @@ async function getChildren(notion, id) {
 
       pages.push({
         id,
+        favicon,
         title,
         groups,
         filename,
