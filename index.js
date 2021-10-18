@@ -121,7 +121,7 @@ const linkOfId = (allPages, id, args = {}) => {
 };
 
 async function savePage(
-  { id, title, favicon, content, filename },
+  { id, title, favicon, headingIcon, content, filename },
   backlinks,
   allPages
 ) {
@@ -165,7 +165,14 @@ async function savePage(
           <a href="/">Home</a>
           <button id="toggle-btn" aria-label="enable dark theme">🌙</button>
         </header>
-        <h1>${title}</h1>
+        ${
+          headingIcon
+            ? `<div class="title-row">
+                ${headingIcon}
+                <h1>${title}</h1>
+              </div>`
+            : `<h1>${title}</h1>`
+        }
         ${content}
         ${footer}
       </main>
@@ -368,11 +375,14 @@ async function saveFavicon(emoji) {
     async (page, notion) => {
       const { id, icon, properties } = page;
 
-      let emoji = icon ? icon.emoji : "💡";
+      const emoji = icon ? icon.emoji : "💡";
 
       const title = concatenateText(properties.Name.title);
       const blocks = await getChildren(notion, id);
       const favicon = await saveFavicon(emoji);
+      const headingIcon = icon
+        ? `<img width="32" height="32" alt="${icon.emoji}" src="${favicon}" />`
+        : null;
       const filename =
         (properties.Filename
           ? concatenateText(properties.Filename.rich_text)
@@ -383,6 +393,7 @@ async function saveFavicon(emoji) {
 
       pages.push({
         id,
+        headingIcon,
         favicon,
         title,
         groups,
