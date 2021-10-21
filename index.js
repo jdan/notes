@@ -282,6 +282,8 @@ async function blockToHtml(block, pageId, allPages) {
       <p>${textToHtml_(block.quote.text)}</p>
       ${children.join("\n")}
     </blockquote>`;
+  } else if (block.type === "divider") {
+    return "<hr />";
   } else if (block.type === "unsupported") {
     return "[unsupported]";
   } else {

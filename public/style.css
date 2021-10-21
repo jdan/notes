@@ -168,6 +168,12 @@ details > :not(summary) {
   width: var(--emoji-width);
 }
 
+hr {
+  margin: 32px 0;
+  border-color: var(--link-color);
+  opacity: 0.5;
+}
+
 @media (max-width: 660px) {
   :root {
     --image-width: 100%;
