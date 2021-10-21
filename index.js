@@ -259,10 +259,16 @@ async function blockToHtml(block, pageId, allPages) {
       displayMode: true,
     });
   } else if (block.type === "image") {
-    if (block.image.type !== "file") {
-      console.log("Unrecognized image", block);
-    } else {
+    if (block.image.type === "file") {
       return downloadImageBlock(block, blockId);
+    } else if (block.image.type === "external") {
+      const caption = concatenateText(block.image.caption);
+      return `<figure id="${blockId}">
+        <img alt="${caption}" src="${block.image.external.url}">
+        <figcaption>${caption}</figcaption>
+      </figure>`;
+    } else {
+      console.log("Unrecognized image", block);
     }
   } else if (block.type === "to_do") {
     return `<div><label>
