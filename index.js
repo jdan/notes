@@ -147,7 +147,7 @@ async function savePage(
       <meta name="viewport" content="width=device-width, initial-scale=1">
 
       <meta property="og:title" content="${title}" />
-      <meta property="og:image" content="/me.png" />
+      <meta property="og:image" content="https://cards.jordanscales.com/me.png" />
 
       <meta name="twitter:card" content="summary" />
       <meta name="twitter:site" content="@jdan" />
