@@ -183,6 +183,57 @@ async function savePage(
   await fsPromises.writeFile(path.join(outputDir, filename), body);
 }
 
+async function saveSocialCard({ id, title, emoji, filename }) {
+  const largeEmoji = await saveSocialEmoji(emoji);
+  const body = `
+    <!doctype html>
+    <html lang="en">
+    <head>
+      <style>
+        body {
+          --font-color: rgba(255, 255, 255, 0.9);
+          --background-color: #2f3437;
+          background: var(--background-color);
+          color: var(--font-color);
+          margin: 24px;
+          padding: 0;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+            Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+          line-height: 1.4;
+        }
+
+        main {
+          padding-left: 80px;
+        }
+
+        h1 {
+          font-size: 96px;
+        }
+
+        img {
+          width: 128px;
+          height: 128px;
+          position: absolute;
+          bottom: -40px;
+          left: -40px;
+        }
+      </style>
+    </head>
+    <body>
+      <main>
+        <h1>${title}</h1>
+        <h2>Description could go here</h2>
+        <p>cards.jordanscales.com/${filename}</p>
+        <img src="${largeEmoji}">
+    </body>
+    </html>
+  `;
+  await fsPromises.writeFile(
+    path.join(outputDir, filename.replace(/\.html$/, "-og.html")),
+    body
+  );
+}
+
 function downloadImageBlock(block, blockId) {
   const filename = `${block.id}.png`;
   const dest = fs.createWriteStream(
@@ -348,22 +399,31 @@ async function getChildren(notion, id) {
   );
 }
 
-async function saveFavicon(emoji) {
+async function saveEmoji(emoji, size) {
   const codepoints = emojiUnicode(emoji).split(" ").join("-");
   const basename = `${codepoints}.png`;
+  const outputBasename = `${codepoints}-${size}.png`;
   const filename = path.join(
     __dirname,
-    "node_modules/emoji-datasource-apple/img/apple/64",
+    `node_modules/emoji-datasource-apple/img/apple/${size}`,
     basename
   );
   if (!fs.existsSync(filename)) {
     console.log("Unknown emoji --", emoji, codepoints);
   }
-  const dest = path.join(outputDir, basename);
+  const dest = path.join(outputDir, outputBasename);
   if (!fs.existsSync(dest)) {
     await fsPromises.copyFile(filename, dest);
   }
-  return basename;
+  return outputBasename;
+}
+
+async function saveFavicon(emoji) {
+  return saveEmoji(emoji, 64);
+}
+
+async function saveSocialEmoji(emoji) {
+  return saveEmoji(emoji, 160);
 }
 
 (async () => {
@@ -402,6 +462,7 @@ async function saveFavicon(emoji) {
       pages.push({
         id,
         headingIcon,
+        emoji,
         favicon,
         title,
         groups,
@@ -431,6 +492,7 @@ async function saveFavicon(emoji) {
 
   Promise.all([
     ...pages.map((page) => savePage(page, backlinks, pages)),
+    ...pages.map((page) => saveSocialCard(page)),
     copyStaticAssets(),
   ]);
 })();
