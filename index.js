@@ -98,6 +98,7 @@ const outputDir = path.join(__dirname, "build");
 async function copyStaticAssets() {
   const assets = [
     path.join(__dirname, "public/style.css"),
+    path.join(__dirname, "public/me.png"),
     path.join(__dirname, "node_modules/prismjs/themes/prism-coy.css"),
     path.join(__dirname, "node_modules/prismjs/themes/prism-tomorrow.css"),
     path.join(__dirname, "node_modules/katex/dist/katex.min.css"),
