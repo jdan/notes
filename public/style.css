@@ -54,7 +54,7 @@ p > code {
 }
 
 figure {
-  margin: 12px auto;
+  margin: 16px auto;
   display: flex;
   max-width: var(--image-width);
   flex-direction: column;
