@@ -54,7 +54,7 @@ p > code {
 }
 
 figure {
-  margin: 0 auto;
+  margin: 12px auto;
   display: flex;
   max-width: var(--image-width);
   flex-direction: column;
@@ -96,6 +96,10 @@ footer {
 
 ul {
   padding-left: 1em;
+}
+
+li {
+  padding: 3px 0 3px 3px;
 }
 
 footer label {
