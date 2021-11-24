@@ -36,6 +36,19 @@ a[href^="http"]::after {
   font-size: 14px;
 }
 
+a.with-emoji {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: bottom;
+}
+
+a.with-emoji img {
+  --emoji-size: 20px;
+  width: var(--emoji-size);
+  height: var(--emoji-size);
+  margin-right: 4px;
+}
+
 a:visited {
   color: var(--link-color);
 }
@@ -121,7 +134,7 @@ footer ul {
 }
 
 footer ul a {
-  display: block;
+  display: flex !important;
   font-weight: bold;
   padding: 10px;
   background: var(--dimmest);
@@ -130,9 +143,17 @@ footer ul a {
   text-decoration: none;
 }
 
+footer ul a.with-emoji img {
+  margin-right: 8px;
+}
+
 footer ul a:hover,
 footer ul a:focus {
   background: var(--dimmer);
+}
+
+footer li {
+  padding: 0;
 }
 
 blockquote {

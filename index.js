@@ -113,9 +113,11 @@ async function copyStaticAssets() {
 const linkOfId = (allPages, id, args = {}) => {
   const page = allPages.find((entry) => entry.id === id);
   if (page) {
-    return `<a href="/${page.filename}">${
-      args.overwriteTitle || page.title
-    }</a>`;
+    return `<a href="/${page.filename}"${
+      page.emoji ? ` class="with-emoji"` : ""
+    }>
+      ${page.emoji ? `<img alt="" src="${page.favicon}">` : ""}
+      ${args.overwriteTitle || page.title}</a>`;
   } else {
     return `[${id}]`;
   }
@@ -384,11 +386,10 @@ async function saveFavicon(emoji) {
     async (page, notion) => {
       const { id, icon, properties } = page;
 
-      const emoji = icon ? icon.emoji : "💡";
-
+      const emoji = icon && icon.emoji;
       const title = concatenateText(properties.Name.title);
       const blocks = await getChildren(notion, id);
-      const favicon = await saveFavicon(emoji);
+      const favicon = await saveFavicon(emoji || "💡");
       const headingIcon = icon
         ? `<img width="32" height="32" alt="${icon.emoji}" src="${favicon}" />`
         : null;
@@ -404,6 +405,7 @@ async function saveFavicon(emoji) {
         id,
         headingIcon,
         favicon,
+        emoji,
         title,
         groups,
         filename,
