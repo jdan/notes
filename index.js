@@ -137,7 +137,7 @@ const linkOfId = (allPages, id, args = {}) => {
     return `<a href="/${page.filename}"${
       page.emoji ? ` class="with-emoji"` : ""
     }>
-      ${page.emoji ? `<img class="emoji" alt="" src="${page.favicon}">` : ""}
+      ${page.emoji ? `<img class="emoji" alt="" src="/${page.favicon}">` : ""}
       ${args.overwriteTitle || page.title}</a>`;
   } else {
     return `[${id}]`;
@@ -422,7 +422,7 @@ async function saveFavicon(emoji) {
       const blocks = await getChildren(notion, id);
       const favicon = await saveFavicon(emoji || "💡");
       const headingIcon = icon
-        ? `<img width="32" height="32" alt="${icon.emoji}" src="${favicon}" />`
+        ? `<img width="32" height="32" alt="${icon.emoji}" src="/${favicon}" />`
         : null;
       const filename =
         (properties.Filename
