@@ -3,6 +3,7 @@
     "emoji-datasource-apple": "^7.0.2",
     "emoji-unicode": "^2.0.1",
     "katex": "^0.13.18",
+    "node-emoji": "^1.11.0",
     "notion-for-each-row": "1.0.2",
     "prismjs": "^1.25.0"
   }

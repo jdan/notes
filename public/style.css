@@ -27,6 +27,13 @@ body {
   line-height: 1.4;
 }
 
+img.emoji {
+  --emoji-size: 20px;
+  width: var(--emoji-size);
+  height: var(--emoji-size);
+  vertical-align: bottom;
+}
+
 a {
   color: var(--link-color);
 }
@@ -42,10 +49,7 @@ a.with-emoji {
   vertical-align: bottom;
 }
 
-a.with-emoji img {
-  --emoji-size: 20px;
-  width: var(--emoji-size);
-  height: var(--emoji-size);
+a.with-emoji img.emoji {
   margin-right: 4px;
 }
 

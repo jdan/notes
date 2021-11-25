@@ -1,6 +1,7 @@
 const fs = require("fs");
 const https = require("https");
 const path = require("path");
+const emoji = require("node-emoji");
 const emojiUnicode = require("emoji-unicode");
 const forEachRow = require("notion-for-each-row");
 const katex = require("katex");
@@ -35,9 +36,29 @@ function relativeDate(str) {
   return formatted[0].toUpperCase() + formatted.slice(1);
 }
 
-function textToHtml(pageId, text, allPages) {
+async function textToHtml(pageId, text, allPages) {
   if (text.type === "text") {
-    let content = text.text.content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const codeFriendly = text.text.content
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    const emojiToLoad = new Set([]);
+    let content = emoji.replace(codeFriendly, ({ emoji }) => {
+      emojiToLoad.add(emoji);
+      return emoji;
+    });
+
+    await Promise.all(
+      [...emojiToLoad].map(async (emoji) => {
+        const filename = await saveFavicon(emoji);
+        // Hmmmm safe?
+        content = content.replace(
+          new RegExp(emoji, "ug"),
+          `<img class="emoji" alt="${emoji}" src="${filename}" />`
+        );
+      })
+    );
+
     if (text.annotations.bold) {
       content = `<strong>${content}</strong>`;
     }
@@ -116,7 +137,7 @@ const linkOfId = (allPages, id, args = {}) => {
     return `<a href="/${page.filename}"${
       page.emoji ? ` class="with-emoji"` : ""
     }>
-      ${page.emoji ? `<img alt="" src="${page.favicon}">` : ""}
+      ${page.emoji ? `<img class="emoji" alt="" src="${page.favicon}">` : ""}
       ${args.overwriteTitle || page.title}</a>`;
   } else {
     return `[${id}]`;
@@ -218,27 +239,37 @@ function downloadImageBlock(block, blockId) {
 }
 
 async function blockToHtml(block, pageId, allPages) {
-  const textToHtml_ = (texts) =>
-    texts.map((text) => textToHtml(pageId, text, allPages)).join("");
+  const textToHtml_ = async (texts) => {
+    const converts = await Promise.all(
+      texts.map((text) => textToHtml(pageId, text, allPages))
+    );
+    return converts.join("");
+  };
   const blockId = "b" + block.id.replace(/-/g, "").slice(0, 8);
   const children = await Promise.all(
     block.children.map((block) => blockToHtml(block, pageId, allPages))
   );
 
   if (block.type === "bulleted_list_item") {
-    return `<li id="${blockId}">${textToHtml_(
+    return `<li id="${blockId}">${await textToHtml_(
       block.bulleted_list_item.text
     )}</li>`;
   } else if (block.type === "paragraph") {
-    return `<p id="${blockId}">${textToHtml_(block.paragraph.text)}</p>`;
+    return `<p id="${blockId}">${await textToHtml_(block.paragraph.text)}</p>`;
   } else if (block.type === "heading_1") {
-    return `<h1 id="${blockId}">${textToHtml_(block.heading_1.text)}</h1>`;
+    return `<h1 id="${blockId}">${await textToHtml_(
+      block.heading_1.text
+    )}</h1>`;
   } else if (block.type === "heading_2") {
-    return `<h2 id="${blockId}">${textToHtml_(block.heading_2.text)}</h2>`;
+    return `<h2 id="${blockId}">${await textToHtml_(
+      block.heading_2.text
+    )}</h2>`;
   } else if (block.type === "heading_3") {
-    return `<h3 id="${blockId}">${textToHtml_(block.heading_3.text)}</h3>`;
+    return `<h3 id="${blockId}">${await textToHtml_(
+      block.heading_3.text
+    )}</h3>`;
   } else if (block.type === "toggle") {
-    return `<details id="${blockId}"><summary>${textToHtml_(
+    return `<details id="${blockId}"><summary>${await textToHtml_(
       block.toggle.text
     )}</summary>${children.join("\n")}</details>`;
   } else if (block.type === "code") {
@@ -278,11 +309,11 @@ async function blockToHtml(block, pageId, allPages) {
       <input type="checkbox" onclick="return false" ${
         block.to_do.checked ? "checked" : ""
       }>
-      ${textToHtml_(block.to_do.text)}
+      ${await textToHtml_(block.to_do.text)}
     </label></div>`;
   } else if (block.type === "quote") {
     return `<blockquote>
-      <p>${textToHtml_(block.quote.text)}</p>
+      <p>${await textToHtml_(block.quote.text)}</p>
       ${children.join("\n")}
     </blockquote>`;
   } else if (block.type === "divider") {
