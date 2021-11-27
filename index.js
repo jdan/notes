@@ -1,3 +1,5 @@
+const childProcess = require("child_process");
+const crypto = require("crypto");
 const fs = require("fs");
 const https = require("https");
 const path = require("path");
@@ -11,6 +13,25 @@ const loadLanguages = require("prismjs/components/");
 const fsPromises = fs.promises;
 
 loadLanguages(["ocaml", "scheme", "diff", "shell", "docker", "typescript"]);
+
+const sha = childProcess.execSync("git rev-parse HEAD").toString().trim();
+let id = 1;
+function getDeterministicUUID() {
+  const shasum = crypto.createHash("sha1");
+  shasum.update(sha);
+  shasum.update("" + id++);
+  return addDashes(shasum.digest("hex"));
+}
+
+function addDashes(id) {
+  return [
+    id.slice(0, 8),
+    id.slice(8, 12),
+    id.slice(12, 16),
+    id.slice(16, 20),
+    id.slice(20, 32),
+  ].join("-");
+}
 
 function concatenateText(arr) {
   return arr.map((i) => i.text.content).join("");
@@ -80,13 +101,8 @@ async function textToHtml(pageId, text, allPages) {
       if (/^\//.test(text.text.link.url)) {
         const id = text.text.link.url.slice(1);
         // Hack: format into "c3d85220-62aa-457a-b414-90c5e9929790"
-        const backlinkFriendlyId = [
-          id.slice(0, 8),
-          id.slice(8, 12),
-          id.slice(12, 16),
-          id.slice(16, 20),
-          id.slice(20, 32),
-        ].join("-");
+
+        const backlinkFriendlyId = addDashes(id);
 
         registerBacklink(pageId, backlinkFriendlyId);
         return linkOfId(allPages, backlinkFriendlyId, {
@@ -250,10 +266,24 @@ async function blockToHtml(block, pageId, allPages) {
     block.children.map((block) => blockToHtml(block, pageId, allPages))
   );
 
-  if (block.type === "bulleted_list_item") {
-    return `<li id="${blockId}">${await textToHtml_(
-      block.bulleted_list_item.text
-    )}</li>`;
+  if (block.type === "bulleted_list") {
+    return `<ul id="${blockId}">${children.join("\n")}</ul>`;
+  } else if (block.type === "numbered_list") {
+    return `<ol id="${blockId}">${children.join("\n")}</ol>`;
+  } else if (block.type === "bulleted_list_item") {
+    return `<li id="${blockId}">
+      <div class="list-item">
+        ${await textToHtml_(block.bulleted_list_item.text)}
+      </div>
+      ${children.join("\n")}
+    </li>`;
+  } else if (block.type === "numbered_list_item") {
+    return `<li id="${blockId}">
+      <div class="list-item">
+        ${await textToHtml_(block.numbered_list_item.text)}
+      </div>
+      ${children.join("\n")}
+    </li>`;
   } else if (block.type === "paragraph") {
     return `<p id="${blockId}">${await textToHtml_(block.paragraph.text)}</p>`;
   } else if (block.type === "heading_1") {
@@ -325,32 +355,37 @@ async function blockToHtml(block, pageId, allPages) {
   }
 }
 
-function groupBulletedItems(blocks) {
+function groupBy(blocks, type, result_type) {
   let result = [];
   let currentList = [];
   blocks.forEach((block) => {
-    if (block.type === "bulleted_list_item") {
+    if (block.has_children) {
+      block.children = groupBy(block.children, type, result_type);
+    }
+
+    if (block.type === type) {
       currentList.push(block);
     } else {
       if (currentList.length) {
         result.push({
-          type: "bulleted_list",
-          items: currentList,
+          id: getDeterministicUUID(),
+          has_children: true,
+          type: result_type,
+          children: currentList,
         });
         currentList = [];
       }
 
-      result.push({
-        type: "single",
-        block,
-      });
+      result.push(block);
     }
   });
 
   if (currentList.length) {
     result.push({
-      type: "bulleted_list",
-      items: currentList,
+      id: getDeterministicUUID(),
+      has_children: true,
+      type: result_type,
+      children: currentList,
     });
   }
 
@@ -419,7 +454,7 @@ async function saveFavicon(emoji) {
 
       const emoji = icon && icon.emoji;
       const title = concatenateText(properties.Name.title);
-      const blocks = await getChildren(notion, id);
+      const children = await getChildren(notion, id);
       const favicon = await saveFavicon(emoji || "💡");
       const headingIcon = icon
         ? `<img width="32" height="32" alt="${icon.emoji}" src="/${favicon}" />`
@@ -429,8 +464,11 @@ async function saveFavicon(emoji) {
           ? concatenateText(properties.Filename.rich_text)
           : "") || `${id.replace(/-/g, "").slice(0, 8)}.html`;
 
-      // TODO: Needs to be recursive too?
-      const groups = groupBulletedItems(blocks);
+      const blocks = groupBy(
+        groupBy(children, "numbered_list_item", "numbered_list"),
+        "bulleted_list_item",
+        "bulleted_list"
+      );
 
       pages.push({
         id,
@@ -438,28 +476,18 @@ async function saveFavicon(emoji) {
         favicon,
         emoji,
         title,
-        groups,
+        blocks,
         filename,
       });
     }
   );
 
-  // Populate the page content and backlinks
   await Promise.all(
     pages.map(async (page) => {
-      const parts = await Promise.all(
-        page.groups.map(async (entry) => {
-          if (entry.type === "single") {
-            return blockToHtml(entry.block, page.id, pages);
-          } else {
-            const items = await Promise.all(
-              entry.items.map((item) => blockToHtml(item, page.id, pages))
-            );
-            return `<ul>${items.join("")}</ul>`;
-          }
-        })
+      const renderedBlocks = await Promise.all(
+        page.blocks.map(async (block) => blockToHtml(block, page.id, pages))
       );
-      page.content = parts.join("");
+      page.content = renderedBlocks.join("");
     })
   );
 

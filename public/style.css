@@ -112,10 +112,14 @@ footer {
 }
 
 ul {
-  padding-left: 1em;
+  padding-left: 1.15em;
 }
 
-li {
+ol {
+  padding-left: 1.4em;
+}
+
+.list-item {
   padding: 3px 0 3px 3px;
 }
 
@@ -154,10 +158,6 @@ footer ul a.with-emoji img {
 footer ul a:hover,
 footer ul a:focus {
   background: var(--dimmer);
-}
-
-footer li {
-  padding: 0;
 }
 
 blockquote {
