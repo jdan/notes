@@ -57,13 +57,21 @@ a:visited {
   color: var(--link-color);
 }
 
+.text {
+  margin: 1em 0;
+}
+
+.children {
+  margin-left: 1.6em;
+}
+
 pre code {
   padding: 1em 0 !important;
   overflow: auto;
   display: block;
 }
 
-p > code {
+.text > code {
   background: var(--dimmest);
   font-weight: bold;
   border-radius: 2px;
@@ -166,7 +174,7 @@ blockquote {
   padding: 0 14px;
 }
 
-blockquote p {
+blockquote .text {
   margin: 0;
   padding: 3px 2px;
 }

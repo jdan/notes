@@ -285,7 +285,10 @@ async function blockToHtml(block, pageId, allPages) {
       ${children.join("\n")}
     </li>`;
   } else if (block.type === "paragraph") {
-    return `<p id="${blockId}">${await textToHtml_(block.paragraph.text)}</p>`;
+    return `<div class="text" id="${blockId}">
+      ${await textToHtml_(block.paragraph.text)}
+      <div class="children">${children.join("\n")}</div>
+    </div>`;
   } else if (block.type === "heading_1") {
     return `<h1 id="${blockId}">${await textToHtml_(
       block.heading_1.text
