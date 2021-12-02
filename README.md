@@ -2,7 +2,7 @@
 
 Turn a [Notion](https://notion.so) database into a deck of cards.
 
-![image](https://user-images.githubusercontent.com/287268/133845880-4bf28439-b387-4bab-b370-ff1d5fc4b852.png)
+<img width="1381" alt="a desktop with notion open on the left and a rendered notion page using this library on the right" src="https://user-images.githubusercontent.com/287268/144431224-ac4673ba-e432-47d7-94c5-c82ecbadb986.png">
 
 ### usage
 
