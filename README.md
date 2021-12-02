@@ -1,6 +1,6 @@
 ## cards
 
-Turn a [Notion](https://notion.so) database into a deck of cards.
+Turn a [Notion](https://notion.so) database into a deck of cards. I use this to power [cards.jordanscales.com](https://cards.jordanscales.com).
 
 <img width="1381" alt="a desktop with notion open on the left and a rendered notion page using this library on the right" src="https://user-images.githubusercontent.com/287268/144431224-ac4673ba-e432-47d7-94c5-c82ecbadb986.png">
 
