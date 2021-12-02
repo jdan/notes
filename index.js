@@ -14,7 +14,10 @@ const fsPromises = fs.promises;
 
 loadLanguages(["ocaml", "scheme", "diff", "shell", "docker", "typescript"]);
 
-const sha = childProcess.execSync("git rev-parse HEAD").toString().trim();
+const sha = childProcess
+  .execSync("git rev-parse HEAD", { cwd: __dirname })
+  .toString()
+  .trim();
 let id = 1;
 function getDeterministicUUID() {
   const shasum = crypto.createHash("sha1");
