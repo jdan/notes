@@ -12,7 +12,7 @@ const loadLanguages = require("prismjs/components/");
 
 const fsPromises = fs.promises;
 
-loadLanguages(["ocaml", "scheme", "diff", "shell", "docker", "typescript"]);
+loadLanguages(["ocaml", "scheme", "diff", "shell", "docker", "typescript", "prolog"]);
 
 const sha = childProcess
   .execSync("git rev-parse HEAD", { cwd: __dirname })
