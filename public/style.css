@@ -179,7 +179,7 @@ footer ul a {
   text-decoration: none;
 }
 
-footer ul a.with-emoji img {
+footer ul a.with-emoji img.emoji {
   margin-right: 8px;
 }
 
