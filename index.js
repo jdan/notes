@@ -12,7 +12,15 @@ const loadLanguages = require("prismjs/components/");
 
 const fsPromises = fs.promises;
 
-loadLanguages(["ocaml", "scheme", "diff", "shell", "docker", "typescript", "prolog"]);
+loadLanguages([
+  "ocaml",
+  "scheme",
+  "diff",
+  "shell",
+  "docker",
+  "typescript",
+  "prolog",
+]);
 
 const sha = childProcess
   .execSync("git rev-parse HEAD", { cwd: __dirname })
@@ -122,7 +130,19 @@ async function textToHtml(pageId, text, allPages) {
       registerBacklink(pageId, text.mention.page.id);
       return linkOfId(allPages, text.mention.page.id);
     } else if (text.mention.type === "date") {
-      return relativeDate(text.mention.date.start);
+      const { start } = text.mention.date;
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(start)) {
+        return relativeDate(start);
+      } else {
+        const [date, time] = start.slice(0, 16).split("T");
+
+        const options = { month: "short", day: "numeric", year: "numeric" };
+        const longDate = new Intl.DateTimeFormat("en-US", options).format(
+          new Date(date)
+        );
+        return `${longDate} – ${time}`;
+      }
     } else {
       console.log("Unrecognized mention --", text);
     }
@@ -203,7 +223,7 @@ async function savePage(
     </head>
     <body>
       <script>0</script>
-      <main>
+      <main class="p${id.slice(0, 8)}">
         <header>
           <a href="/">Home</a>
           <button id="toggle-btn" aria-label="enable dark theme">🌙</button>

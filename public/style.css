@@ -85,6 +85,10 @@ figure {
   flex-direction: column;
 }
 
+li figure {
+  margin: 16px 0;
+}
+
 figure img {
   width: 100%;
   height: auto;
@@ -148,7 +152,7 @@ ol ol ol ol ol ol li {
 }
 
 .list-item {
-  padding: 3px 0 3px 3px;
+  padding: 3px 0;
 }
 
 footer label {
@@ -229,6 +233,39 @@ hr {
   margin: 32px 0;
   border-color: var(--link-color);
   opacity: 0.5;
+}
+
+.p06a5a7d9 {
+  --image-width: 250px;
+}
+
+.p06a5a7d9 li {
+  position: relative;
+  padding-left: 8px;
+}
+
+.p06a5a7d9 li figure {
+  margin: 1.5em 0;
+}
+
+.p06a5a7d9 li:not(:last-of-type)::after {
+  content: " ";
+  position: absolute;
+  left: -15px;
+  top: 12px;
+  bottom: -30px;
+  width: 1px;
+  background: var(--font-color);
+}
+
+.p06a5a7d9 li:not(:first-of-type)::before {
+  content: " ";
+  position: absolute;
+  left: -15px;
+  top: 0;
+  height: 16px;
+  width: 1px;
+  background: var(--font-color);
 }
 
 @media (max-width: 660px) {
