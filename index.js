@@ -427,10 +427,25 @@ const registerBacklink = (sourceId, destinationId) => {
   }
 };
 
+async function getAllChildBlocks(notion, id) {
+  const blocks = [];
+
+  let next_cursor = undefined;
+  let has_more = true;
+
+  while (has_more) {
+    ({ results, has_more, next_cursor } = await notion.blocks.children.list({
+      block_id: id,
+      start_cursor: next_cursor,
+    }));
+    blocks.push(...results);
+  }
+
+  return blocks;
+}
+
 async function getChildren(notion, id) {
-  // TODO: Paginate?
-  const req = await notion.blocks.children.list({ block_id: id });
-  const blocks = req.results;
+  const blocks = await getAllChildBlocks(notion, id);
   return Promise.all(
     blocks.map(async (block) => {
       if (block.has_children) {
