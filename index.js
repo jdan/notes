@@ -42,6 +42,7 @@ const loadLanguages = require("prismjs/components/");
     title: string,
     blocks: CardBlock[]
     filename: string
+    content?: string
   }} CardPage
 */
 
@@ -83,10 +84,14 @@ function addDashes(id) {
 }
 
 /**
- * @param {Array<{ text: { content: string }}>} arr
+ * @param {Array<RichText> | undefined} arr
  */
 function concatenateText(arr) {
-  return arr.map((i) => i.text.content).join("");
+  if (arr) {
+    return arr.map((i) => i.plain_text).join("");
+  } else {
+    return ""
+  }
 }
 
 /** @param {string} str containing an ISO *date*, eg yyyy-mm-dd */
@@ -177,14 +182,14 @@ async function textToHtml(pageId, text, allPages) {
       registerBacklink(pageId, text.mention.page.id);
       return linkOfId(allPages, text.mention.page.id);
     } else if (text.mention.type === "date") {
-      const { start } = text.mention.date;
+      const start = text.mention.date.date?.start;
 
-      if (/^\d{4}-\d{2}-\d{2}$/.test(start)) {
+      if (start && /^\d{4}-\d{2}-\d{2}$/.test(start)) {
         return relativeDate(start);
-      } else {
+      } else if (start) {
         const [date, time] = start.slice(0, 16).split("T");
 
-        const options = { month: "short", day: "numeric", year: "numeric" };
+        const options = /** @type {const} */({ month: "short", day: "numeric", year: "numeric" });
         const longDate = new Intl.DateTimeFormat("en-US", options).format(
           new Date(date)
         );
@@ -217,6 +222,13 @@ async function copyStaticAssets() {
   );
 }
 
+/**
+ * 
+ * @param {CardPage[]} allPages 
+ * @param {string} id 
+ * @param {{ overwriteTitle?: string }} args 
+ * @returns 
+ */
 const linkOfId = (allPages, id, args = {}) => {
   const page = allPages.find((entry) => entry.id === id);
   if (page) {
@@ -230,6 +242,12 @@ const linkOfId = (allPages, id, args = {}) => {
   }
 };
 
+/**
+ * 
+ * @param {CardPage} page 
+ * @param {typeof backlinks} backlinks 
+ * @param {CardPage[]} allPages 
+ */
 async function savePage(
   { id, title, favicon, headingIcon, content, filename },
   backlinks,
@@ -293,11 +311,16 @@ async function savePage(
   await fsPromises.writeFile(path.join(outputDir, filename), body);
 }
 
+/**
+ * 
+ * @param {Block & { type: "image"}} block 
+ * @param {string} blockId 
+ * @returns Promise<string | undefined>
+ */
 function downloadImageBlock(block, blockId) {
   const filename = `${block.id}.png`;
-  const dest = fs.createWriteStream(
-    path.join(__dirname, "build", `${block.id}.png`)
-  );
+  const destPath = path.join(__dirname, "build", `${block.id}.png`)
+  const destStream = fs.createWriteStream(destPath)
 
   return new Promise((resolve) => {
     const caption = concatenateText(block.image.caption);
@@ -306,25 +329,37 @@ function downloadImageBlock(block, blockId) {
       <figcaption>${caption}</figcaption>
     </figure>`;
 
-    if (fs.existsSync(dest)) {
+    if (fs.existsSync(destPath)) {
       resolve(html);
     } else {
-      https.get(block.image.file.url, (res) => {
+      const url = block.image.type === 'file' ? block.image.file.url : block.image.external.url
+      https.get(url, (res) => {
         res
-          .pipe(dest)
+          .pipe(destStream)
           .on("finish", () => {
             resolve(html);
           })
           .on("error", () => {
             console.log("Image failed to write", block);
-            resolve();
+            resolve(undefined);
           });
       });
     }
   });
 }
 
+/**
+ * 
+ * @param {CardBlock} block 
+ * @param {string} pageId 
+ * @param {CardPage[]} allPages 
+ * @returns 
+ */
 async function blockToHtml(block, pageId, allPages) {
+  /**
+   * @param {RichText[]} texts 
+   * @returns 
+   */
   const textToHtml_ = async (texts) => {
     const converts = await Promise.all(
       texts.map((text) => textToHtml(pageId, text, allPages))
