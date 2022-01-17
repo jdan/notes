@@ -1,6 +1,8 @@
+require("dotenv").config({ path: process.env.CONFIG, debug: true });
 const childProcess = require("child_process");
 const crypto = require("crypto");
 const fs = require("fs");
+const fsPromises = fs.promises;
 const https = require("https");
 const path = require("path");
 const emoji = require("node-emoji");
@@ -17,6 +19,16 @@ const mimeTypes = require("mime-types");
 /** @typedef {Extract<Block, {type: "paragraph"}>["paragraph"]["text"][number] } RichText */
 /** @typedef {import('@notionhq/client/build/src/api-endpoints').GetPageResponse } Page */
 
+loadLanguages([
+  "ocaml",
+  "scheme",
+  "diff",
+  "shell",
+  "docker",
+  "typescript",
+  "prolog",
+]);
+
 /**
  * Accessors for our env var configurations
  * Override these!
@@ -24,6 +36,10 @@ const mimeTypes = require("mime-types");
 const settings = new (class Settings {
   get twitterHandle() {
     return process.env.TWITTER_HANDLE || "jdan";
+  }
+
+  get ogImage() {
+    return process.env.OG_IMAGE || "https://cards.jordanscales.com/me.png";
   }
 
   get baseUrl() {
@@ -69,6 +85,16 @@ const settings = new (class Settings {
    */
   output(part) {
     return path.join(this.outputDir, part);
+  }
+
+  info() {
+    return {
+      outputDir: this.outputDir,
+      baseUrl: this.baseUrl,
+      notionDatabaseId: this.notionDatabaseId,
+      twitterHandle: this.twitterHandle,
+      ogImage: this.ogImage,
+    };
   }
 })();
 
@@ -144,18 +170,6 @@ const settings = new (class Settings {
     content?: string
   }} CardPage
 */
-
-const fsPromises = fs.promises;
-
-loadLanguages([
-  "ocaml",
-  "scheme",
-  "diff",
-  "shell",
-  "docker",
-  "typescript",
-  "prolog",
-]);
 
 const sha = childProcess
   .execSync("git rev-parse HEAD", { cwd: __dirname })
@@ -381,7 +395,7 @@ async function savePage(
       <meta name="viewport" content="width=device-width, initial-scale=1">
 
       <meta property="og:title" content="${title}" />
-      <meta property="og:image" content="https://cards.jordanscales.com/me.png" />
+      <meta property="og:image" content="${settings.ogImage}" />
 
       <meta name="twitter:card" content="summary" />
       <meta name="twitter:site" content="${settings.twitterHandle}" />
@@ -727,6 +741,8 @@ async function saveFavicon(emoji) {
 }
 
 (async () => {
+  console.log(settings.info());
+
   /** @type {CardPage[]} */ const pages = [];
 
   // Make sure settings.outputDir exists
