@@ -598,7 +598,7 @@ async function getAllChildBlocks(notion, id) {
 
   let next_cursor = undefined;
   let has_more = true;
-  /** @type {Array<Block>} */ let results;
+  /** @type {Array<GetBlockResponse>} */ let results;
 
   while (has_more) {
     ({ results, has_more, next_cursor } = await notion.blocks.children.list({

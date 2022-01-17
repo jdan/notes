@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "typecheck": "tsc",
+    "watch": "tsc --watch"
+  },
   "dependencies": {
     "@notionhq/client": "^0.4.12",
     "emoji-datasource-apple": "^7.0.2",
