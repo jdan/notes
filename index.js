@@ -17,6 +17,61 @@ const mimeTypes = require("mime-types");
 /** @typedef {Extract<Block, {type: "paragraph"}>["paragraph"]["text"][number] } RichText */
 /** @typedef {import('@notionhq/client/build/src/api-endpoints').GetPageResponse } Page */
 
+/**
+ * Accessors for our env var configurations
+ * Override these!
+ */
+const settings = new (class Settings {
+  get twitterHandle() {
+    return process.env.TWITTER_HANDLE || "jdan";
+  }
+
+  get baseUrl() {
+    return process.env.BASE_URL || "/";
+  }
+
+  get outputDir() {
+    return (
+      process.env.BUILD ||
+      path.join(
+        __dirname,
+        "build",
+        this.baseUrl[0] === "/" ? this.baseUrl.slice(1) : "."
+      )
+    );
+  }
+
+  get notionSecret() {
+    const { NOTION_SECRET } = process.env;
+    if (!NOTION_SECRET) {
+      throw new Error("Missing NOTION_SECRET env variable");
+    }
+    return NOTION_SECRET;
+  }
+
+  get notionDatabaseId() {
+    const { NOTION_DATABASE_ID } = process.env;
+    if (!NOTION_DATABASE_ID) {
+      throw new Error("Missing NOTION_DATABASE_ID env variable");
+    }
+    return NOTION_DATABASE_ID;
+  }
+
+  /**
+   * @param {string} part
+   */
+  url(part) {
+    return path.join(this.baseUrl, part);
+  }
+
+  /**
+   * @param {string} part
+   */
+  output(part) {
+    return path.join(this.outputDir, part);
+  }
+})();
+
 // We preload all blocks in every page then transform the block data model so
 // that each block has a children array containing its children.
 //
@@ -253,8 +308,6 @@ async function textToHtml(pageId, text, allPages) {
   }
 }
 
-const outputDir = path.join(__dirname, "build");
-
 async function copyStaticAssets() {
   const assets = [
     path.join(__dirname, "public/style.css"),
@@ -265,7 +318,7 @@ async function copyStaticAssets() {
   ];
   return Promise.all(
     assets.map(async (asset) =>
-      fsPromises.copyFile(asset, path.join(outputDir, path.basename(asset)))
+      fsPromises.copyFile(asset, settings.output(path.basename(asset)))
     )
   );
 }
@@ -280,10 +333,14 @@ async function copyStaticAssets() {
 const linkOfId = (allPages, id, args = {}) => {
   const page = allPages.find((entry) => entry.id === id);
   if (page) {
-    return `<a href="/${page.filename}"${
+    return `<a href="${settings.url(page.filename)}"${
       page.emoji ? ` class="with-emoji"` : ""
     }>
-      ${page.emoji ? `<img class="emoji" alt="" src="/${page.favicon}">` : ""}
+      ${
+        page.emoji
+          ? `<img class="emoji" alt="" src="${settings.url(page.favicon)}">`
+          : ""
+      }
       ${args.overwriteTitle || page.title}</a>`;
   } else {
     return `[${id}]`;
@@ -317,7 +374,9 @@ async function savePage(
     <html lang="en">
     <head>
       <title>${title}</title>
-      <link rel="Shortcut Icon" type="image/x-icon" href="/${favicon}" />
+      <link rel="Shortcut Icon" type="image/x-icon" href="${settings.url(
+        favicon
+      )}" />
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -325,20 +384,22 @@ async function savePage(
       <meta property="og:image" content="https://cards.jordanscales.com/me.png" />
 
       <meta name="twitter:card" content="summary" />
-      <meta name="twitter:site" content="@jdan" />
+      <meta name="twitter:site" content="${settings.twitterHandle}" />
       <meta name="twitter:title" content="${title}" />
 
-      <link rel="stylesheet" href="/style.css">
-      <link rel="preload" href="/prism-coy.css" as="style">
-      <link rel="preload" href="/prism-tomorrow.css" as="style">
-      <link id="prism" rel="stylesheet" href="/prism-coy.css">
-      <link rel="stylesheet" href="/katex.min.css">
+      <link rel="stylesheet" href="${settings.url("style.css")}">
+      <link rel="preload" href="${settings.url("prism-coy.css")}" as="style">
+      <link rel="preload" href="${settings.url(
+        "prism-tomorrow.css"
+      )}" as="style">
+      <link id="prism" rel="stylesheet" href=${settings.url("prism-coy.css")}">
+      <link rel="stylesheet" href=${settings.url("katex.min.css")}>
     </head>
     <body>
       <script>0</script>
       <main class="p${id.slice(0, 8)}">
         <header>
-          <a href="/">Home</a>
+          <a href="${settings.baseUrl}">Home</a>
           <button id="toggle-btn" aria-label="enable dark theme">🌙</button>
         </header>
         ${
@@ -356,7 +417,7 @@ async function savePage(
     </body>
     </html>
   `;
-  await fsPromises.writeFile(path.join(outputDir, filename), body);
+  await fsPromises.writeFile(settings.output(filename), body);
 }
 
 /**
@@ -367,9 +428,8 @@ async function savePage(
  */
 async function downloadImageBlock(block, blockId) {
   const filenamePrefix = `${block.id}.image`;
-  const build = path.join(__dirname, "build");
 
-  const files = await fsPromises.readdir(build);
+  const files = await fsPromises.readdir(settings.outputDir);
   let filename = files.find((name) => name.startsWith(filenamePrefix));
 
   if (!filename) {
@@ -383,7 +443,7 @@ async function downloadImageBlock(block, blockId) {
           res.headers["content-type"] || "image/png"
         );
         const filename = `${filenamePrefix}.${ext}`;
-        const destStream = fs.createWriteStream(path.join(build, filename));
+        const destStream = fs.createWriteStream(settings.output(filename));
         res
           .pipe(destStream)
           .on("finish", () => {
@@ -403,7 +463,7 @@ async function downloadImageBlock(block, blockId) {
 
   const caption = concatenateText(block.image.caption);
   const html = `<figure id="${blockId}">
-      <img alt="${caption}" src="/${filename}">
+      <img alt="${caption}" src="${settings.url(filename)}">
       <figcaption>${caption}</figcaption>
     </figure>`;
 
@@ -659,7 +719,7 @@ async function saveFavicon(emoji) {
   if (!fs.existsSync(filename)) {
     console.log("Unknown emoji --", emoji, codepoints);
   }
-  const dest = path.join(outputDir, basename);
+  const dest = settings.output(basename);
   if (!fs.existsSync(dest)) {
     await fsPromises.copyFile(filename, dest);
   }
@@ -667,27 +727,18 @@ async function saveFavicon(emoji) {
 }
 
 (async () => {
-  const { NOTION_SECRET, NOTION_DATABASE_ID } = process.env;
-  if (!NOTION_SECRET) {
-    throw new Error("Missing NOTION_SECRET environment variable");
-  }
-
-  if (!NOTION_DATABASE_ID) {
-    throw new Error("Missing NOTION_DATABASE_ID environment variable");
-  }
-
   /** @type {CardPage[]} */ const pages = [];
 
-  // Make sure outputDir exists
-  if (!fs.existsSync(outputDir)) {
-    await fsPromises.mkdir(outputDir);
+  // Make sure settings.outputDir exists
+  if (!fs.existsSync(settings.outputDir)) {
+    await fsPromises.mkdir(settings.outputDir, { recursive: true });
   }
 
   // Load all the pages
   await forEachRow(
     {
-      token: NOTION_SECRET,
-      database: NOTION_DATABASE_ID,
+      token: settings.notionSecret,
+      database: settings.notionDatabaseId,
     },
     async (page, notion) => {
       const { id, icon, properties } = page;
@@ -697,9 +748,9 @@ async function saveFavicon(emoji) {
       const children = await getChildren(notion, id);
       const favicon = await saveFavicon(emoji || "💡");
       const headingIcon = icon
-        ? `<img width="32" height="32" alt="${
-            emoji || ""
-          }" src="/${favicon}" />`
+        ? `<img width="32" height="32" alt="${emoji || ""}" src="${settings.url(
+            favicon
+          )}" />`
         : null;
       const filename =
         (properties.Filename
