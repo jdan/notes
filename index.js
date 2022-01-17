@@ -15,15 +15,35 @@ const loadLanguages = require("prismjs/components/");
 /** @typedef { import('@notionhq/client/build/src/api-types').Page } Page */
 /** @typedef { import('@notionhq/client/build/src/api-types').Block } Block */
 
-/** @typedef {{
- * id: string,
- * headingIcon: string | null,
- * favicon: string,
- * emoji: string | undefined,
- * title: string,
- * blocks: any[]
-}} CardPage */
- 
+
+// These are the two main types we'll be using as we template out cards from Notion's data.
+// CardBlock is the same as a normal notion API block.
+
+/**
+ * Like a Notion API block, but has a children[] that contains either blocks, or
+ * two special groups of blocks: numbered_list and bulleted_list groups.
+ * 
+ * @typedef {
+     GroupedBy<
+       GroupedBy<RecursiveChildren<Block>, "numbered_list_item", "numbered_list">,
+       "bulleted_list_item", "bulleted_list"
+     >
+   } CardBlock
+ */
+
+/**
+ * A Card is based on a Notion page.
+ * 
+ * @typedef {{
+    id: string,
+    headingIcon: string | null,
+    favicon: string,
+    emoji: string | undefined,
+    title: string,
+    blocks: CardBlock[]
+    filename: string
+  }} CardPage
+*/
 
 const fsPromises = fs.promises;
 
@@ -92,7 +112,7 @@ function relativeDate(str) {
 
 /**
  * @param {string} pageId uuid of a page
- * @param { RichText } text 
+ * @param { RichText } text
  * @param {any} allPages
  */
 async function textToHtml(pageId, text, allPages) {
@@ -101,7 +121,7 @@ async function textToHtml(pageId, text, allPages) {
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
 
-    const emojiToLoad = new Set([]);
+    /** @type {Set<string>} */ const emojiToLoad = new Set([]);
     let content = emoji.replace(codeFriendly, ({ emoji }) => {
       emojiToLoad.add(emoji);
       return emoji;
@@ -413,28 +433,28 @@ async function blockToHtml(block, pageId, allPages) {
 
 /**
  * Version of `Parent` that has child array of `Child`.
- * 
+ *
  * @template Parent
  * @template Child
  * @typedef {Omit<Parent, "children"> & { children: Child[] }} WithChildren
  */
 
 /**
- * Version of `T` that has itself as children, recursively.
- * This can't be expressed as `WithChildren<T, RecursiveChildren<T>>` because Typescript.
- * 
- * @template T
- * @typedef {Omit<T, "children"> & { children: RecursiveChildren<T>[] }}
+ * A tree where each Branch can have children of either Leaf or more recursive branches.
+ *
+ * @template Branch
+ * @template [Leaf=never]
+ * @typedef {Branch & { children: Array<Leaf | RecursiveChildren<Branch, Leaf>> }} RecursiveChildren
  */
 
 /**
  * A group of blocks with the same BlockType. Their children are also
  * recursively grouped.
- * 
- * @template {string} BlockType
+ *
+ * @template {ChildBlock["type"]} BlockType
  * @template {string} GroupType
- * @template {{ type: BlockType, children: ChildBlock[] }} ChildBlock
- * 
+ * @template {{ type: string, children: any[] }} ChildBlock
+ *
  * @typedef {{
  *   id: string,
  *   type: GroupType,
@@ -442,40 +462,52 @@ async function blockToHtml(block, pageId, allPages) {
  *   children: Array<
  *     WithChildren<
  *       Extract<ChildBlock, { type: BlockType }>,
- *       RecursiveChildren<
- *         ChildBlock | BlockGroup<BlockType, GroupType, ChildBlock>
- *       >
+ *       GroupedBy<ChildBlock, BlockType, GroupType>
  *     >
  *   >;
  * }} BlockGroup
  */
 
 /**
+ * Group by result block type.
+ * 
+ * @template {{ type: string, children: any[] }} ChildBlock
+ * @template {ChildBlock["type"]} BlockType
+ * @template {string} GroupType
+ * @typedef {
+     | RecursiveChildren<ChildBlock, BlockGroup<BlockType, GroupType, ChildBlock>>
+     | BlockGroup<BlockType, GroupType, ChildBlock>
+   } GroupedBy
+ */
+
+/**
  * Group adjacent runs of `blocks` that have `type` into a new synthetic block
  * with type `result_type`. `blocks` is recursively mutated to have the grouping.
  * 
- * @template {string} BlockType 
+ * @template {ChildBlock["type"]} BlockType 
  * @template {string} GroupType
  * @template {{
     id: string,
-    type: BlockType;
+    type: string;
     children: ChildBlock[];
     has_children: boolean;
   }} ChildBlock
  * @param {ChildBlock[]} blocks 
  * @param {BlockType} type 
  * @param {GroupType} result_type 
- * @returns {Array<RecursiveChildren<ChildBlock | BlockGroup<BlockType, GroupType, ChildBlock>>>}
+ * @returns {Array<GroupedBy<ChildBlock, BlockType, GroupType>>}
  */
 function groupAdjacentBlocksRecursively(blocks, type, result_type) {
   /** @typedef {Extract<ChildBlock, { type: BlockType }>} BlockToGroup */
-  /** @type {Array<RecursiveChildren<ChildBlock | BlockGroup<BlockType, GroupType, ChildBlock>>>} */ let result = [];
+  /** @type {Array<GroupedBy<ChildBlock, BlockType, GroupType>>} */ let result =
+    [];
   /** @type {BlockToGroup[]} */ let currentList = [];
-  const blocksToUpdate = /** @type {typeof result} */(blocks)
-  blocks.forEach((block, i) => {
+  blocks.forEach((block) => {
     if (block.has_children) {
       // Recursively apply grouping to each block's children.
-      blocksToUpdate[i].children = groupAdjacentBlocksRecursively(block.children, type, result_type);
+      block.children = /** @type {ChildBlock[]} */ (
+        groupAdjacentBlocksRecursively(block.children, type, result_type)
+      );
     }
 
     if (block.type === type) {
@@ -483,15 +515,16 @@ function groupAdjacentBlocksRecursively(blocks, type, result_type) {
       // since there's no way to declare that { type: XXXX } is a discriminated
       // union (it could always be declared as `string`).
       // See https://stackoverflow.com/questions/50870423/discriminated-union-of-generic-type
-      currentList.push(/** @type {BlockToGroup} */(block));
+      currentList.push(/** @type {BlockToGroup} */ (block));
     } else {
       if (currentList.length) {
-        /** @type {BlockGroup<BlockType, GroupType, ChildBlock>} */ const group = {
-          id: getDeterministicUUID(),
-          has_children: true,
-          type: result_type,
-          children: currentList,
-        }
+        /** @type {BlockGroup<BlockType, GroupType, ChildBlock>} */ const group =
+          {
+            id: getDeterministicUUID(),
+            has_children: true,
+            type: result_type,
+            children: currentList,
+          };
         result.push(group);
         currentList = [];
       }
@@ -506,7 +539,7 @@ function groupAdjacentBlocksRecursively(blocks, type, result_type) {
       has_children: true,
       type: result_type,
       children: currentList,
-    }
+    };
     result.push(group);
   }
 
@@ -515,7 +548,10 @@ function groupAdjacentBlocksRecursively(blocks, type, result_type) {
 
 /** @type {Record<string, string[]>} */
 const backlinks = {};
-const registerBacklink = (/** @type {string} */ sourceId, /** @type {string} */ destinationId) => {
+const registerBacklink = (
+  /** @type {string} */ sourceId,
+  /** @type {string} */ destinationId
+) => {
   if (backlinks[destinationId]) {
     backlinks[destinationId].push(sourceId);
   } else {
@@ -532,7 +568,7 @@ async function getAllChildBlocks(notion, id) {
 
   let next_cursor = undefined;
   let has_more = true;
-  /** @type {Array<Block>} */ let results
+  /** @type {Array<Block>} */ let results;
 
   while (has_more) {
     ({ results, has_more, next_cursor } = await notion.blocks.children.list({
@@ -546,13 +582,15 @@ async function getAllChildBlocks(notion, id) {
 }
 
 /**
- * 
- * @param {NotionClient} notion 
- * @param {string} id 
- * @returns 
+ *
+ * @param {NotionClient} notion
+ * @param {string} id
+ * @returns
  */
 async function getChildren(notion, id) {
-  const blocks = /** @type {WithChildren[]} */(await getAllChildBlocks(notion, id));
+  const blocks = /** @type {RecursiveChildren<Block>[]} */ (
+    await getAllChildBlocks(notion, id)
+  );
   return Promise.all(
     blocks.map(async (block) => {
       if (block.has_children) {
@@ -586,73 +624,83 @@ async function saveFavicon(emoji) {
   return basename;
 }
 
-(async () => {
-  const { NOTION_SECRET, NOTION_DATABASE_ID } = process.env
-  if (!NOTION_SECRET) {
-    throw new Error('Missing NOTION_SECRET environment variable');
-  }
-
-  if (!NOTION_DATABASE_ID) {
-    throw new Error('Missing NOTION_DATABASE_ID environment variable');
-  }
-
-  const pages = [];
-
-  // Make sure outputDir exists
-  if (!fs.existsSync(outputDir)) {
-    await fsPromises.mkdir(outputDir);
-  }
-
-  // Load all the pages
-  await forEachRow(
-    {
-      token: NOTION_SECRET,
-      database: NOTION_DATABASE_ID,
-    },
-    async (page, notion) => {
-      const { id, icon, properties } = page;
-
-      const emoji = icon?.type === "emoji" ? icon.emoji : undefined;
-      const title = concatenateText(properties.Name.title);
-      const children = await getChildren(notion, id);
-      const favicon = await saveFavicon(emoji || "💡");
-      const headingIcon = icon
-        ? `<img width="32" height="32" alt="${emoji || ''}" src="/${favicon}" />`
-        : null;
-      const filename =
-        (properties.Filename
-          ? concatenateText(properties.Filename.rich_text)
-          : "") || `${id.replace(/-/g, "").slice(0, 8)}.html`;
-
-      const blocks = groupAdjacentBlocksRecursively(
-        groupAdjacentBlocksRecursively(children, "numbered_list_item", "numbered_list"),
-        "bulleted_list_item",
-        "bulleted_list"
-      );
-
-      pages.push({
-        id,
-        headingIcon,
-        favicon,
-        emoji,
-        title,
-        blocks,
-        filename,
-      });
+(
+  async () => {
+    const { NOTION_SECRET, NOTION_DATABASE_ID } = process.env;
+    if (!NOTION_SECRET) {
+      throw new Error("Missing NOTION_SECRET environment variable");
     }
-  );
 
-  await Promise.all(
-    pages.map(async (page) => {
-      const renderedBlocks = await Promise.all(
-        page.blocks.map(async (block) => blockToHtml(block, page.id, pages))
-      );
-      page.content = renderedBlocks.join("");
-    })
-  );
+    if (!NOTION_DATABASE_ID) {
+      throw new Error("Missing NOTION_DATABASE_ID environment variable");
+    }
 
-  Promise.all([
-    ...pages.map((page) => savePage(page, backlinks, pages)),
-    copyStaticAssets(),
-  ]);
-})();
+    /** @type {CardPage[]} */ const pages = [];
+
+    // Make sure outputDir exists
+    if (!fs.existsSync(outputDir)) {
+      await fsPromises.mkdir(outputDir);
+    }
+
+    // Load all the pages
+    await forEachRow(
+      {
+        token: NOTION_SECRET,
+        database: NOTION_DATABASE_ID,
+      },
+      async (page, notion) => {
+        const { id, icon, properties } = page;
+
+        const emoji = icon?.type === "emoji" ? icon.emoji : undefined;
+        const title = concatenateText(properties.Name.title);
+        const children = await getChildren(notion, id);
+        const favicon = await saveFavicon(emoji || "💡");
+        const headingIcon = icon
+          ? `<img width="32" height="32" alt="${
+              emoji || ""
+            }" src="/${favicon}" />`
+          : null;
+        const filename =
+          (properties.Filename
+            ? concatenateText(properties.Filename.rich_text)
+            : "") || `${id.replace(/-/g, "").slice(0, 8)}.html`;
+
+        // There's no way to provide type parameters to generic functions with JSDoc.
+        // So we can't argue our way out of this one. We're just going to have
+        // to suck it up and cast to any and go home and have a lukewarm cup of
+        // tea and gaze into the distance.
+        const numbered = groupAdjacentBlocksRecursively(children, "numbered_list_item", "numbered_list"),
+        // I admit defeat:
+        const bulleted = /** @type {any} */(groupAdjacentBlocksRecursively(
+          /** @type {any} */(numbered),
+          "bulleted_list_item",
+          "bulleted_list"
+        ))
+
+        pages.push({
+          id,
+          headingIcon,
+          favicon,
+          emoji,
+          title,
+          blocks: bulleted,
+          filename,
+        });
+      }
+    );
+
+    await Promise.all(
+      pages.map(async (page) => {
+        const renderedBlocks = await Promise.all(
+          page.blocks.map(async (block) => blockToHtml(block, page.id, pages))
+        );
+        page.content = renderedBlocks.join("");
+      })
+    );
+
+    Promise.all([
+      ...pages.map((page) => savePage(page, backlinks, pages)),
+      copyStaticAssets(),
+    ]);
+  }
+)();
