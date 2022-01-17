@@ -10,6 +10,21 @@ const katex = require("katex");
 const Prism = require("prismjs");
 const loadLanguages = require("prismjs/components/");
 
+/** @typedef { import('@notionhq/client').Client } NotionClient */
+/** @typedef { import('@notionhq/client/build/src/api-types').RichText } RichText */
+/** @typedef { import('@notionhq/client/build/src/api-types').Page } Page */
+/** @typedef { import('@notionhq/client/build/src/api-types').Block } Block */
+
+/** @typedef {{
+ * id: string,
+ * headingIcon: string | null,
+ * favicon: string,
+ * emoji: string | undefined,
+ * title: string,
+ * blocks: any[]
+}} CardPage */
+ 
+
 const fsPromises = fs.promises;
 
 loadLanguages([
@@ -34,6 +49,9 @@ function getDeterministicUUID() {
   return addDashes(shasum.digest("hex"));
 }
 
+/**
+ * @param {string} id a UUID string
+ */
 function addDashes(id) {
   return [
     id.slice(0, 8),
@@ -44,10 +62,14 @@ function addDashes(id) {
   ].join("-");
 }
 
+/**
+ * @param {Array<{ text: { content: string }}>} arr
+ */
 function concatenateText(arr) {
   return arr.map((i) => i.text.content).join("");
 }
 
+/** @param {string} str containing an ISO *date*, eg yyyy-mm-dd */
 function relativeDate(str) {
   const [year, month, day] = str.split("-").map((i) => parseInt(i));
 
@@ -68,6 +90,11 @@ function relativeDate(str) {
   return formatted[0].toUpperCase() + formatted.slice(1);
 }
 
+/**
+ * @param {string} pageId uuid of a page
+ * @param { RichText } text 
+ * @param {any} allPages
+ */
 async function textToHtml(pageId, text, allPages) {
   if (text.type === "text") {
     const codeFriendly = text.text.content
@@ -381,24 +408,91 @@ async function blockToHtml(block, pageId, allPages) {
   }
 }
 
-function groupBy(blocks, type, result_type) {
-  let result = [];
-  let currentList = [];
-  blocks.forEach((block) => {
+// Dear reader, I'm sorry for the complicated type math here. We are trying to
+// express a recursive tree transformation, which is usually a huge pain.
+
+/**
+ * Version of `Parent` that has child array of `Child`.
+ * 
+ * @template Parent
+ * @template Child
+ * @typedef {Omit<Parent, "children"> & { children: Child[] }} WithChildren
+ */
+
+/**
+ * Version of `T` that has itself as children, recursively.
+ * This can't be expressed as `WithChildren<T, RecursiveChildren<T>>` because Typescript.
+ * 
+ * @template T
+ * @typedef {Omit<T, "children"> & { children: RecursiveChildren<T>[] }}
+ */
+
+/**
+ * A group of blocks with the same BlockType. Their children are also
+ * recursively grouped.
+ * 
+ * @template {string} BlockType
+ * @template {string} GroupType
+ * @template {{ type: BlockType, children: ChildBlock[] }} ChildBlock
+ * 
+ * @typedef {{
+ *   id: string,
+ *   type: GroupType,
+ *   has_children: true,
+ *   children: Array<
+ *     WithChildren<
+ *       Extract<ChildBlock, { type: BlockType }>,
+ *       RecursiveChildren<
+ *         ChildBlock | BlockGroup<BlockType, GroupType, ChildBlock>
+ *       >
+ *     >
+ *   >;
+ * }} BlockGroup
+ */
+
+/**
+ * Group adjacent runs of `blocks` that have `type` into a new synthetic block
+ * with type `result_type`. `blocks` is recursively mutated to have the grouping.
+ * 
+ * @template {string} BlockType 
+ * @template {string} GroupType
+ * @template {{
+    id: string,
+    type: BlockType;
+    children: ChildBlock[];
+    has_children: boolean;
+  }} ChildBlock
+ * @param {ChildBlock[]} blocks 
+ * @param {BlockType} type 
+ * @param {GroupType} result_type 
+ * @returns {Array<RecursiveChildren<ChildBlock | BlockGroup<BlockType, GroupType, ChildBlock>>>}
+ */
+function groupAdjacentBlocksRecursively(blocks, type, result_type) {
+  /** @typedef {Extract<ChildBlock, { type: BlockType }>} BlockToGroup */
+  /** @type {Array<RecursiveChildren<ChildBlock | BlockGroup<BlockType, GroupType, ChildBlock>>>} */ let result = [];
+  /** @type {BlockToGroup[]} */ let currentList = [];
+  const blocksToUpdate = /** @type {typeof result} */(blocks)
+  blocks.forEach((block, i) => {
     if (block.has_children) {
-      block.children = groupBy(block.children, type, result_type);
+      // Recursively apply grouping to each block's children.
+      blocksToUpdate[i].children = groupAdjacentBlocksRecursively(block.children, type, result_type);
     }
 
     if (block.type === type) {
-      currentList.push(block);
+      // This kind of generic type constraint is impossible to express in TS
+      // since there's no way to declare that { type: XXXX } is a discriminated
+      // union (it could always be declared as `string`).
+      // See https://stackoverflow.com/questions/50870423/discriminated-union-of-generic-type
+      currentList.push(/** @type {BlockToGroup} */(block));
     } else {
       if (currentList.length) {
-        result.push({
+        /** @type {BlockGroup<BlockType, GroupType, ChildBlock>} */ const group = {
           id: getDeterministicUUID(),
           has_children: true,
           type: result_type,
           children: currentList,
-        });
+        }
+        result.push(group);
         currentList = [];
       }
 
@@ -407,19 +501,21 @@ function groupBy(blocks, type, result_type) {
   });
 
   if (currentList.length) {
-    result.push({
+    /** @type {BlockGroup<BlockType, GroupType, ChildBlock>} */ const group = {
       id: getDeterministicUUID(),
       has_children: true,
       type: result_type,
       children: currentList,
-    });
+    }
+    result.push(group);
   }
 
   return result;
 }
 
+/** @type {Record<string, string[]>} */
 const backlinks = {};
-const registerBacklink = (sourceId, destinationId) => {
+const registerBacklink = (/** @type {string} */ sourceId, /** @type {string} */ destinationId) => {
   if (backlinks[destinationId]) {
     backlinks[destinationId].push(sourceId);
   } else {
@@ -427,16 +523,21 @@ const registerBacklink = (sourceId, destinationId) => {
   }
 };
 
+/**
+ * @param {NotionClient} notion Notion API client
+ * @param {string} id Notion page ID
+ */
 async function getAllChildBlocks(notion, id) {
   const blocks = [];
 
   let next_cursor = undefined;
   let has_more = true;
+  /** @type {Array<Block>} */ let results
 
   while (has_more) {
     ({ results, has_more, next_cursor } = await notion.blocks.children.list({
       block_id: id,
-      start_cursor: next_cursor,
+      start_cursor: next_cursor || undefined,
     }));
     blocks.push(...results);
   }
@@ -444,8 +545,14 @@ async function getAllChildBlocks(notion, id) {
   return blocks;
 }
 
+/**
+ * 
+ * @param {NotionClient} notion 
+ * @param {string} id 
+ * @returns 
+ */
 async function getChildren(notion, id) {
-  const blocks = await getAllChildBlocks(notion, id);
+  const blocks = /** @type {WithChildren[]} */(await getAllChildBlocks(notion, id));
   return Promise.all(
     blocks.map(async (block) => {
       if (block.has_children) {
@@ -458,6 +565,9 @@ async function getChildren(notion, id) {
   );
 }
 
+/**
+ * @param {string} emoji Unicode emoji character
+ */
 async function saveFavicon(emoji) {
   const codepoints = emojiUnicode(emoji).split(" ").join("-");
   const basename = `${codepoints}.png`;
@@ -477,6 +587,15 @@ async function saveFavicon(emoji) {
 }
 
 (async () => {
+  const { NOTION_SECRET, NOTION_DATABASE_ID } = process.env
+  if (!NOTION_SECRET) {
+    throw new Error('Missing NOTION_SECRET environment variable');
+  }
+
+  if (!NOTION_DATABASE_ID) {
+    throw new Error('Missing NOTION_DATABASE_ID environment variable');
+  }
+
   const pages = [];
 
   // Make sure outputDir exists
@@ -487,26 +606,26 @@ async function saveFavicon(emoji) {
   // Load all the pages
   await forEachRow(
     {
-      token: process.env["NOTION_SECRET"],
-      database: process.env["NOTION_DATABASE_ID"],
+      token: NOTION_SECRET,
+      database: NOTION_DATABASE_ID,
     },
     async (page, notion) => {
       const { id, icon, properties } = page;
 
-      const emoji = icon && icon.emoji;
+      const emoji = icon?.type === "emoji" ? icon.emoji : undefined;
       const title = concatenateText(properties.Name.title);
       const children = await getChildren(notion, id);
       const favicon = await saveFavicon(emoji || "💡");
       const headingIcon = icon
-        ? `<img width="32" height="32" alt="${icon.emoji}" src="/${favicon}" />`
+        ? `<img width="32" height="32" alt="${emoji || ''}" src="/${favicon}" />`
         : null;
       const filename =
         (properties.Filename
           ? concatenateText(properties.Filename.rich_text)
           : "") || `${id.replace(/-/g, "").slice(0, 8)}.html`;
 
-      const blocks = groupBy(
-        groupBy(children, "numbered_list_item", "numbered_list"),
+      const blocks = groupAdjacentBlocksRecursively(
+        groupAdjacentBlocksRecursively(children, "numbered_list_item", "numbered_list"),
         "bulleted_list_item",
         "bulleted_list"
       );
