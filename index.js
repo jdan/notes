@@ -9,6 +9,7 @@ const forEachRow = require("notion-for-each-row");
 const katex = require("katex");
 const Prism = require("prismjs");
 const loadLanguages = require("prismjs/components/");
+const mimeTypes = require("mime-types");
 
 /** @typedef {import('@notionhq/client').Client } NotionClient */
 /** @typedef {import('@notionhq/client/build/src/api-endpoints').GetBlockResponse } GetBlockResponse */
@@ -364,38 +365,49 @@ async function savePage(
  * @param {string} blockId
  * @returns Promise<string | undefined>
  */
-function downloadImageBlock(block, blockId) {
-  const filename = `${block.id}.png`;
-  const destPath = path.join(__dirname, "build", `${block.id}.png`);
-  const destStream = fs.createWriteStream(destPath);
+async function downloadImageBlock(block, blockId) {
+  const filenamePrefix = `${block.id}.image`;
+  const build = path.join(__dirname, "build");
 
-  return new Promise((resolve) => {
-    const caption = concatenateText(block.image.caption);
-    const html = `<figure id="${blockId}">
-      <img alt="${caption}" src="/${filename}">
-      <figcaption>${caption}</figcaption>
-    </figure>`;
+  const files = await fsPromises.readdir(build);
+  let filename = files.find((name) => name.startsWith(filenamePrefix));
 
-    if (fs.existsSync(destPath)) {
-      resolve(html);
-    } else {
+  if (!filename) {
+    filename = await new Promise((resolve) => {
       const url =
         block.image.type === "file"
           ? block.image.file.url
           : block.image.external.url;
       https.get(url, (res) => {
+        const ext = mimeTypes.extension(
+          res.headers["content-type"] || "image/png"
+        );
+        const filename = `${filenamePrefix}.${ext}`;
+        const destStream = fs.createWriteStream(path.join(build, filename));
         res
           .pipe(destStream)
           .on("finish", () => {
-            resolve(html);
+            resolve(filename);
           })
           .on("error", () => {
             console.log("Image failed to write", block);
             resolve(undefined);
           });
       });
-    }
-  });
+    });
+  }
+
+  if (!filename) {
+    return;
+  }
+
+  const caption = concatenateText(block.image.caption);
+  const html = `<figure id="${blockId}">
+      <img alt="${caption}" src="/${filename}">
+      <figcaption>${caption}</figcaption>
+    </figure>`;
+
+  return html;
 }
 
 /**
@@ -680,7 +692,7 @@ async function saveFavicon(emoji) {
     async (page, notion) => {
       const { id, icon, properties } = page;
 
-      const emoji = icon?.type === "emoji" ? icon.emoji : undefined;
+      const emoji = icon && icon.type === "emoji" ? icon.emoji : undefined;
       const title = concatenateText(properties.Name.title);
       const children = await getChildren(notion, id);
       const favicon = await saveFavicon(emoji || "💡");
