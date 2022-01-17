@@ -1,5 +1,9 @@
-const stylesheet = /** @type {HTMLElement} */ (document.getElementById("prism"))
-const toggleBtn = /** @type {HTMLElement} */ (document.getElementById("toggle-btn"))
+const stylesheet = /** @type {HTMLElement} */ (
+  document.getElementById("prism")
+);
+const toggleBtn = /** @type {HTMLElement} */ (
+  document.getElementById("toggle-btn")
+);
 
 /**
  * Set the theme to either light or dark.
