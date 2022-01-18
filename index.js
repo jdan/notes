@@ -1,4 +1,7 @@
-require("dotenv").config({ path: process.env.CONFIG, debug: true });
+require("dotenv").config({
+  path: process.env.CONFIG,
+  debug: Boolean(process.env.CONFIG),
+});
 const childProcess = require("child_process");
 const crypto = require("crypto");
 const fs = require("fs");
@@ -765,7 +768,7 @@ async function saveEmojiFavicon(emoji) {
   return basename;
 }
 
-(async () => {
+const main = async function main() {
   console.log(settings.info());
 
   /** @type {CardPage[]} */ const pages = [];
@@ -837,4 +840,13 @@ async function saveEmojiFavicon(emoji) {
     ...pages.map((page) => savePage(page, backlinks, pages)),
     copyStaticAssets(),
   ]);
+};
+
+(async () => {
+  try {
+    await main();
+  } catch (error) {
+    console.error(error);
+    process.exit(1);
+  }
 })();
