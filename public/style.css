@@ -38,11 +38,6 @@ a {
   color: var(--link-color);
 }
 
-a[href^="http"]::after {
-  content: "🔗";
-  font-size: 14px;
-}
-
 a.with-emoji {
   display: inline-flex;
   align-items: center;
