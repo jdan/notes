@@ -125,7 +125,7 @@ const settings = new (class Settings {
 
 /**
  * A block-like object containing only blocks of type `BlockType`.
- * 
+ *
  * @template {Block["type"]} BlockType
  * @template {string} GroupType
  * @typedef {{
@@ -138,7 +138,7 @@ const settings = new (class Settings {
 
 /**
   * All the block groups we make.
-  * 
+  *
   @typedef {
     | BlockGroup<"numbered_list_item", "numbered_list">
     | BlockGroup<"bulleted_list_item", "bulleted_list">
@@ -158,12 +158,11 @@ const settings = new (class Settings {
 
 /**
  * A Card is based on a Notion page.
- * 
+ *
  * @typedef {{
     id: string,
     headingIcon: string | null,
     favicon: string,
-    emoji: string | undefined,
     title: string,
     blocks: CardBlock[]
     filename: string
@@ -247,7 +246,7 @@ async function textToHtml(pageId, text, allPages) {
 
     await Promise.all(
       [...emojiToLoad].map(async (emoji) => {
-        const filename = await saveFavicon(emoji);
+        const filename = await saveEmojiFavicon(emoji);
         // Hmmmm safe?
         content = content.replace(
           new RegExp(emoji, "ug"),
@@ -348,10 +347,10 @@ const linkOfId = (allPages, id, args = {}) => {
   const page = allPages.find((entry) => entry.id === id);
   if (page) {
     return `<a href="${settings.url(page.filename)}"${
-      page.emoji ? ` class="with-emoji"` : ""
+      page.favicon ? ` class="with-emoji"` : ""
     }>
       ${
-        page.emoji
+        page.favicon
           ? `<img class="emoji" alt="" src="${settings.url(page.favicon)}">`
           : ""
       }
@@ -372,6 +371,8 @@ async function savePage(
   backlinks,
   allPages
 ) {
+  const icon = favicon || (await saveEmojiFavicon("💡"));
+
   const footer = backlinks[id]
     ? `<footer><label>mentioned in</label><ul>${backlinks[id]
         .sort()
@@ -389,7 +390,7 @@ async function savePage(
     <head>
       <title>${title}</title>
       <link rel="Shortcut Icon" type="image/x-icon" href="${settings.url(
-        favicon
+        icon
       )}" />
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -435,41 +436,51 @@ async function savePage(
 }
 
 /**
+ * @param {string} url
+ * @param {string} filenamePrefix
+ * @returns Promise<string | undefined>
+ */
+async function downloadImage(url, filenamePrefix) {
+  const files = await fsPromises.readdir(settings.outputDir);
+  let filename = files.find((name) => name.startsWith(filenamePrefix));
+
+  if (!filename) {
+    return new Promise((resolve) => {
+      https.get(url, (res) => {
+        const ext = mimeTypes.extension(
+          res.headers["content-type"] || "image/png"
+        );
+        const dest = `${filenamePrefix}.${ext}`;
+        const destStream = fs.createWriteStream(settings.output(dest));
+        res
+          .pipe(destStream)
+          .on("finish", () => {
+            resolve(dest);
+          })
+          .on("error", () => {
+            console.log("Image failed to write", dest);
+            resolve(undefined);
+          });
+      });
+    });
+  } else {
+    return filename;
+  }
+}
+
+/**
  *
  * @param {Block & { type: "image"}} block
  * @param {string} blockId
  * @returns Promise<string | undefined>
  */
 async function downloadImageBlock(block, blockId) {
-  const filenamePrefix = `${block.id}.image`;
-
-  const files = await fsPromises.readdir(settings.outputDir);
-  let filename = files.find((name) => name.startsWith(filenamePrefix));
-
-  if (!filename) {
-    filename = await new Promise((resolve) => {
-      const url =
-        block.image.type === "file"
-          ? block.image.file.url
-          : block.image.external.url;
-      https.get(url, (res) => {
-        const ext = mimeTypes.extension(
-          res.headers["content-type"] || "image/png"
-        );
-        const filename = `${filenamePrefix}.${ext}`;
-        const destStream = fs.createWriteStream(settings.output(filename));
-        res
-          .pipe(destStream)
-          .on("finish", () => {
-            resolve(filename);
-          })
-          .on("error", () => {
-            console.log("Image failed to write", block);
-            resolve(undefined);
-          });
-      });
-    });
-  }
+  const filename = await downloadImage(
+    block.image.type === "file"
+      ? block.image.file.url
+      : block.image.external.url,
+    `${block.id}.image`
+  );
 
   if (!filename) {
     return;
@@ -720,9 +731,23 @@ async function getChildren(notion, id) {
 }
 
 /**
- * @param {string} emoji Unicode emoji character
+ * @param {string} pageId
+ * @param {{type: "file", file: {url: string}} | {type: "emoji", emoji: string}} icon
+ * @returns Promise<string>
  */
-async function saveFavicon(emoji) {
+async function saveFavicon(pageId, icon) {
+  if (icon && icon.type === "file") {
+    return await downloadImage(icon.file.url, `${pageId}.icon`);
+  } else if (icon && icon.type === "emoji") {
+    return await saveEmojiFavicon(icon.emoji);
+  }
+}
+
+/**
+ * @param {string} emoji Unicode emoji character
+ * @returns Promise<string>
+ */
+async function saveEmojiFavicon(emoji) {
   const codepoints = emojiUnicode(emoji).split(" ").join("-");
   const basename = `${codepoints}.png`;
   const filename = path.join(
@@ -759,15 +784,20 @@ async function saveFavicon(emoji) {
     async (page, notion) => {
       const { id, icon, properties } = page;
 
-      const emoji = icon && icon.type === "emoji" ? icon.emoji : undefined;
       const title = concatenateText(properties.Name.title);
       const children = await getChildren(notion, id);
-      const favicon = await saveFavicon(emoji || "💡");
+      const favicon = await saveFavicon(id, icon);
+
+      // headingIcon is generated here so it can have the
+      // emoji character as its alt text.
+      //
+      // Probably better to just send the emoji down.
       const headingIcon = icon
-        ? `<img width="32" height="32" alt="${emoji || ""}" src="${settings.url(
-            favicon
-          )}" />`
+        ? `<img width="32" height="32" alt="${
+            icon.type === "emoji" ? icon.emoji : ""
+          }" src="${settings.url(favicon)}" />`
         : null;
+
       const filename =
         (properties.Filename
           ? concatenateText(properties.Filename.rich_text)
@@ -787,7 +817,6 @@ async function saveFavicon(emoji) {
         id,
         headingIcon,
         favicon,
-        emoji,
         title,
         blocks,
         filename,
