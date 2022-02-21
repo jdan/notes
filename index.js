@@ -81,7 +81,7 @@ const settings = new (class Settings {
    * @param {string} part
    */
   url(part) {
-    return path.join(this.baseUrl, part);
+    return this.baseUrl + part;
   }
 
   /**
