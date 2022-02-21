@@ -341,7 +341,6 @@ hr {
 
 .hashart .paragraph {
   margin: 1em 0;
-  overflow-x: scroll;
 }
 
 @media (max-width: 660px) {
@@ -349,5 +348,10 @@ hr {
     width: 100%;
     height: auto;
     aspect-ratio: 4 / 3;
+  }
+  
+  /* tables are hard to make responsive */
+  table {
+    overflow-x: scroll;
   }
 }
