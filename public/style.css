@@ -306,6 +306,10 @@ hr {
   font-size: 15px;
 }
 
+.hashart input {
+  padding: 6px;
+}
+
 .hashart .canvas {
   width: 660px;
   height: 495px;
@@ -317,6 +321,7 @@ hr {
 .hashart .explanation {
   display: flex;
   margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
 .hashart .bytes {
@@ -330,4 +335,13 @@ hr {
 
 .hashart .paragraph {
   margin: 1em 0;
+  overflow-x: scroll;
+}
+
+@media (max-width: 660px) {
+  .hashart .canvas {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+  }
 }
