@@ -558,8 +558,8 @@ async function getHashArtHtml(block, piece, seed) {
         }']");
         const $input = $hashart.querySelector("input");
         const $explanation = $hashart.querySelector(".explanation.inner")
-        const $canvas = $hashart.querySelector("canvas")
-        const ctx = $canvas.getContext("2d")
+        const $canvas = $hashart.querySelector("canvas");
+        const ctx = $canvas.getContext("2d");
 
         function render() {
           const encoder = new TextEncoder();
