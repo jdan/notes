@@ -509,7 +509,7 @@ async function downloadImageBlock(block, blockId) {
 async function getHashArtHtml(block, piece, seed) {
   const pieceJs = await new Promise((resolve, reject) => {
     const b = browserify();
-    b.require(`./node_modules/hashart/art/${piece}.js`);
+    b.require(`hashart/art/${piece}.js`);
     b.bundle((err, js) => {
       if (err) {
         reject(err);
@@ -524,7 +524,7 @@ async function getHashArtHtml(block, piece, seed) {
       <div class="explanation">
         <div class="segment">
           <div><label for="seed">seed</label></div>
-          <input class="bytes" value="${seed}" />
+          <input class="bytes" value="${decodeURIComponent(seed)}" />
         </div>
       </div>
       <div class="explanation">
@@ -536,20 +536,12 @@ async function getHashArtHtml(block, piece, seed) {
         </div>
       </div>
       <canvas class="canvas" width="1320" height="990"></canvas>
-      <aside>
-        <p>
-          <em><strong></strong></em>
-        </p>
-      </aside>
+      <aside></aside>
     </div>
     <script>${pieceJs}</script>
     <script>
       (() => {
-        const e = require("${path.join(
-          __dirname,
-          "node_modules/hashart/art",
-          piece
-        )}.js")
+        const e = require("hashart/art/${piece}.js")
         // HACK: Each piece exports an object with a single key
         const art = new e[Object.keys(e)[0]]();
 
@@ -559,8 +551,10 @@ async function getHashArtHtml(block, piece, seed) {
         const $input = $hashart.querySelector("input");
         const $explanation = $hashart.querySelector(".explanation.inner")
         const $canvas = $hashart.querySelector("canvas");
+        const $description = $hashart.querySelector("aside");
         const ctx = $canvas.getContext("2d");
 
+        // TODO: Maintain scroll position
         function render() {
           const encoder = new TextEncoder();
           const data = encoder.encode($input.value);
@@ -582,6 +576,19 @@ async function getHashArtHtml(block, piece, seed) {
                   <div class="bytes">\${bytes}</div>
                 </div>
               \`).join("");
+
+            $description.innerHTML = \`
+              <p>
+                <a href="https://github.com/jdan/hashart/blob/main/art/\${art.filename}">source</a>
+              </p>
+              <h2>Description</h2>
+              \${art.description(bytes)
+                    .split(\/\\n{2,}\/)
+                    .map((para) => {
+                      return \`<div class="paragraph">\${para}</div>\`
+                    })
+                    .join("")}
+            \`;
 
             art.render(ctx, bytes);
           })
