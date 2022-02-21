@@ -311,6 +311,7 @@ hr {
   height: 495px;
   margin: 0 auto;
   background: white;
+  border: 1px solid var(--link-color);
 }
 
 .hashart .explanation {
@@ -320,11 +321,7 @@ hr {
 
 .hashart .bytes {
   font-weight: bold;
-  border-top: var(--dimmest);
-}
-
-.hashart .unused {
-  color: var(--dimmer);
+  border-top: 1px solid var(--dimmer);
 }
 
 .hashart .segment {

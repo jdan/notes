@@ -528,9 +528,11 @@ async function getHashArtHtml(block, piece, seed) {
         </div>
       </div>
       <div class="explanation">
-        <div class="segment" title="">
-          <div>values</div>
-          <div class="bytes"></div>
+        <div class="explanation inner">
+          <div class="segment" title="">
+            <div>values</div>
+            <div class="bytes"></div>
+          </div>
         </div>
       </div>
       <canvas class="canvas" width="1320" height="990"></canvas>
@@ -542,35 +544,52 @@ async function getHashArtHtml(block, piece, seed) {
     </div>
     <script>${pieceJs}</script>
     <script>
-      const e = require("${path.join(
-        __dirname,
-        "node_modules/hashart/art",
-        piece
-      )}.js")
-      // HACK: Each piece exports an object with a single key
-      const art = new e[Object.keys(e)[0]]()
+      (() => {
+        const e = require("${path.join(
+          __dirname,
+          "node_modules/hashart/art",
+          piece
+        )}.js")
+        // HACK: Each piece exports an object with a single key
+        const art = new e[Object.keys(e)[0]]();
 
-      const $hashart = document.querySelector("[data-block-id=${block.id}]")
-      const $input = $hashart.querySelector("input")
-      const $canvas = $hashart.querySelector("canvas")
-      const ctx = $canvas.getContext("2d")
+        const $hashart = document.querySelector("[data-block-id='${
+          block.id
+        }']");
+        const $input = $hashart.querySelector("input");
+        const $explanation = $hashart.querySelector(".explanation.inner")
+        const $canvas = $hashart.querySelector("canvas")
+        const ctx = $canvas.getContext("2d")
 
-      function render() {
-        const encoder = new TextEncoder();
-        const data = encoder.encode($input.value);
-        const hashPromise = crypto.subtle.digest("SHA-256", data);
+        function render() {
+          const encoder = new TextEncoder();
+          const data = encoder.encode($input.value);
+          const hashPromise = crypto.subtle.digest("SHA-256", data);
 
-        return hashPromise.then(hashBuffer => {
-          const bytes = new Uint8Array(hashBuffer);
-          const hashArray = Array.from(bytes);
-          const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-          console.log({hashHex, bytes})
+          return hashPromise.then(hashBuffer => {
+            const bytes = new Uint8Array(hashBuffer);
+            const hashArray = Array.from(bytes);
+            const hashHex =
+              hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-          art.render(ctx, bytes)
-        })
-      }
+            $explanation.innerHTML =
+              art.explanation(bytes).map(({ name, bytes, normalized }) => \`
+                <div
+                  class="segment \${name === "unused" ? "unused" : ""}"
+                  title="\${normalized}"
+                >
+                  <div>\${name}</div>
+                  <div class="bytes">\${bytes}</div>
+                </div>
+              \`).join("");
 
-      render()
+            art.render(ctx, bytes);
+          })
+        }
+
+        render();
+        $input.addEventListener("keyup", render);
+      })();
     </script>
   `;
 }
