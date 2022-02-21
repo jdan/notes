@@ -170,6 +170,7 @@ const settings = new (class Settings {
     title: string,
     blocks: CardBlock[]
     filename: string
+    ogImage: string | null
     content?: string
   }} CardPage
 */
@@ -319,7 +320,7 @@ async function textToHtml(pageId, text, allPages) {
       console.log("Unrecognized mention --", text);
     }
   } else if (text.type === "equation") {
-    return katex.renderToString(text.equation.expression);
+    return katex.renderToString(text.equation.expression, { strict: false });
   } else {
     console.log("Unrecognized text --", text);
   }
@@ -371,7 +372,7 @@ const linkOfId = (allPages, id, args = {}) => {
  * @param {CardPage[]} allPages
  */
 async function savePage(
-  { id, title, favicon, headingIcon, content, filename },
+  { id, title, favicon, headingIcon, content, filename, ogImage },
   backlinks,
   allPages
 ) {
@@ -388,6 +389,9 @@ async function savePage(
     path.join(__dirname, "public/script.js")
   );
 
+  const metaImage = ogImage ? settings.url(ogImage) : settings.ogImage;
+  const twitterCard = ogImage ? "summary_large_image" : "summary";
+
   const body = `
     <!doctype html>
     <html lang="en">
@@ -400,9 +404,9 @@ async function savePage(
       <meta name="viewport" content="width=device-width, initial-scale=1">
 
       <meta property="og:title" content="${title}" />
-      <meta property="og:image" content="${settings.ogImage}" />
+      <meta property="og:image" content="${metaImage}" />
 
-      <meta name="twitter:card" content="summary" />
+      <meta name="twitter:card" content="${twitterCard}" />
       <meta name="twitter:site" content="${settings.twitterHandle}" />
       <meta name="twitter:title" content="${title}" />
 
@@ -682,6 +686,7 @@ async function blockToHtml(block, pageId, allPages) {
   } else if (block.type === "equation") {
     return katex.renderToString(block.equation.expression, {
       displayMode: true,
+      strict: false,
     });
   } else if (block.type === "image") {
     if (block.image.type === "file") {
@@ -925,6 +930,13 @@ const main = async function main() {
           ? concatenateText(properties.Filename.rich_text)
           : "") || `${id.replace(/-/g, "").slice(0, 8)}.html`;
 
+      const ogImage = properties["og:image"].files[0]
+        ? await downloadImage(
+            properties["og:image"].files[0].file.url,
+            `${id}.ogImage`
+          )
+        : null;
+
       const blocks = groupAdjacentBlocksRecursively(
         groupAdjacentBlocksRecursively(
           children,
@@ -942,6 +954,7 @@ const main = async function main() {
         title,
         blocks,
         filename,
+        ogImage,
       });
     }
   );
