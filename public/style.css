@@ -31,6 +31,12 @@ img.emoji {
   --emoji-size: 20px;
   width: var(--emoji-size);
   height: var(--emoji-size);
+  vertical-align: bottom;
+}
+
+h1 img.emoji,
+h2 img.emoji,
+h3 img.emoji {
   vertical-align: baseline;
 }
 
