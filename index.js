@@ -556,6 +556,7 @@ async function getHashArtHtml(block, piece, seed) {
         const $explanation = $hashart.querySelector(".explanation.inner")
         const $canvas = $hashart.querySelector("canvas");
         const $description = $hashart.querySelector("aside");
+        const $metaOgImage = document.querySelector("meta[property='og:image']")
         const ctx = $canvas.getContext("2d");
 
         // TODO: Maintain scroll position
@@ -598,8 +599,25 @@ async function getHashArtHtml(block, piece, seed) {
           })
         }
 
+        if (document.location.hash !== "") {
+          const encoded = window.location.hash.slice(1);
+          $input.value = decodeURIComponent(encoded);
+          $metaOgImage.setAttribute("content",
+            \`https://hashpng.jordanscales.com/${piece}/1200/630/\${encoded}.png\`)
+        }
+
         render();
-        $input.addEventListener("keyup", render);
+        $input.addEventListener("input", () => {
+          if ($input.value === "") {
+            return;
+          }
+
+          const encoded = encodeURIComponent($input.value);
+          window.location.replace("#" + encoded);
+          $metaOgImage.setAttribute("content",
+            \`https://hashpng.jordanscales.com/${piece}/1200/630/\${encoded}.png\`)
+          render();
+        });
       })();
     </script>
   `;
