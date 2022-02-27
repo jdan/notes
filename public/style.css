@@ -5,7 +5,7 @@
   --dimmer: #e6e6e6;
   --dimmest: #f6f6f6;
   --link-color: #787672;
-  --image-width: 360px;
+  --image-width: 460px;
 }
 
 body.dark {
@@ -349,7 +349,7 @@ hr {
     height: auto;
     aspect-ratio: 4 / 3;
   }
-  
+
   /* tables are hard to make responsive */
   table {
     overflow-x: scroll;
