@@ -513,7 +513,7 @@ async function downloadImageBlock(block, blockId) {
 async function getHashArtHtml(block, piece, seed) {
   const pieceJs = await new Promise((resolve, reject) => {
     const b = browserify();
-    b.require(`hashart/art/${piece}.js`);
+    b.require(path.join(__dirname, `./node_modules/hashart/art/${piece}.js`))
     b.bundle((err, js) => {
       if (err) {
         reject(err);
