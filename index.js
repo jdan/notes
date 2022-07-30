@@ -2,6 +2,7 @@ require("dotenv").config({
   path: process.env.CONFIG,
   debug: Boolean(process.env.CONFIG),
 });
+const browserify = require("browserify");
 const childProcess = require("child_process");
 const crypto = require("crypto");
 const fs = require("fs");
@@ -80,7 +81,7 @@ const settings = new (class Settings {
    * @param {string} part
    */
   url(part) {
-    return path.join(this.baseUrl, part);
+    return this.baseUrl + part;
   }
 
   /**
@@ -169,6 +170,7 @@ const settings = new (class Settings {
     title: string,
     blocks: CardBlock[]
     filename: string
+    ogImage: string | null
     content?: string
   }} CardPage
 */
@@ -318,7 +320,7 @@ async function textToHtml(pageId, text, allPages) {
       console.log("Unrecognized mention --", text);
     }
   } else if (text.type === "equation") {
-    return katex.renderToString(text.equation.expression);
+    return katex.renderToString(text.equation.expression, { strict: false });
   } else {
     console.log("Unrecognized text --", text);
   }
@@ -370,7 +372,7 @@ const linkOfId = (allPages, id, args = {}) => {
  * @param {CardPage[]} allPages
  */
 async function savePage(
-  { id, title, favicon, headingIcon, content, filename },
+  { id, title, favicon, headingIcon, content, filename, ogImage },
   backlinks,
   allPages
 ) {
@@ -387,6 +389,9 @@ async function savePage(
     path.join(__dirname, "public/script.js")
   );
 
+  const metaImage = ogImage ? settings.url(ogImage) : settings.ogImage;
+  const twitterCard = ogImage ? "summary_large_image" : "summary";
+
   const body = `
     <!doctype html>
     <html lang="en">
@@ -399,9 +404,9 @@ async function savePage(
       <meta name="viewport" content="width=device-width, initial-scale=1">
 
       <meta property="og:title" content="${title}" />
-      <meta property="og:image" content="${settings.ogImage}" />
+      <meta property="og:image" content="${metaImage}" />
 
-      <meta name="twitter:card" content="summary" />
+      <meta name="twitter:card" content="${twitterCard}" />
       <meta name="twitter:site" content="${settings.twitterHandle}" />
       <meta name="twitter:title" content="${title}" />
 
@@ -473,7 +478,7 @@ async function downloadImage(url, filenamePrefix) {
 
 /**
  *
- * @param {Block & { type: "image"}} block
+ * @param {Block & { type: "image" }} block
  * @param {string} blockId
  * @returns Promise<string | undefined>
  */
@@ -496,6 +501,129 @@ async function downloadImageBlock(block, blockId) {
     </figure>`;
 
   return html;
+}
+
+/**
+ *
+ * @param {Block & { type: "embed" }} block
+ * @param {string} piece
+ * @param {string} seed
+ * @returns string
+ */
+async function getHashArtHtml(block, piece, seed) {
+  const pieceJs = await new Promise((resolve, reject) => {
+    const b = browserify();
+    b.require(path.join(__dirname, `./node_modules/hashart/art/${piece}.js`));
+    b.bundle((err, js) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(js.toString());
+      }
+    });
+  });
+
+  return `
+    <div class="hashart" data-block-id="${block.id}">
+      <div class="explanation">
+        <div class="segment">
+          <div><label for="seed">seed</label></div>
+          <input class="bytes" value="${decodeURIComponent(seed)}" />
+        </div>
+      </div>
+      <div class="explanation">
+        <div class="explanation inner">
+          <div class="segment" title="">
+            <div>values</div>
+            <div class="bytes"></div>
+          </div>
+        </div>
+      </div>
+      <canvas class="canvas" width="1320" height="990"></canvas>
+      <aside></aside>
+    </div>
+    <script>${pieceJs}</script>
+    <script>
+      (() => {
+        const e = require("${path.join(
+          __dirname,
+          `./node_modules/hashart/art/${piece}.js`
+        )}")
+        // HACK: Each piece exports an object with a single key
+        const art = new e[Object.keys(e)[0]]();
+
+        const $hashart = document.querySelector("[data-block-id='${
+          block.id
+        }']");
+        const $input = $hashart.querySelector("input");
+        const $explanation = $hashart.querySelector(".explanation.inner")
+        const $canvas = $hashart.querySelector("canvas");
+        const $description = $hashart.querySelector("aside");
+        const $metaOgImage = document.querySelector("meta[property='og:image']")
+        const ctx = $canvas.getContext("2d");
+
+        // TODO: Maintain scroll position
+        function render() {
+          const encoder = new TextEncoder();
+          const data = encoder.encode($input.value);
+          const hashPromise = crypto.subtle.digest("SHA-256", data);
+
+          return hashPromise.then(hashBuffer => {
+            const bytes = new Uint8Array(hashBuffer);
+            const hashArray = Array.from(bytes);
+            const hashHex =
+              hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+            $explanation.innerHTML =
+              art.explanation(bytes).map(({ name, bytes, normalized }) => \`
+                <div
+                  class="segment \${name === "unused" ? "unused" : ""}"
+                  title="\${normalized}"
+                >
+                  <div>\${name}</div>
+                  <div class="bytes">\${bytes}</div>
+                </div>
+              \`).join("");
+
+            $description.innerHTML = \`
+              <p>
+                <a href="https://github.com/jdan/hashart/blob/main/art/\${art.filename}">source</a>
+              </p>
+              <h2>Description</h2>
+              \${art.description(bytes)
+                    .split(\/\\n{2,}\/)
+                    .map((para) => {
+                      return \`<div class="paragraph">\${para}</div>\`
+                    })
+                    .join("")}
+            \`;
+
+            art.render(ctx, bytes);
+          })
+        }
+
+        if (document.location.hash !== "") {
+          const encoded = window.location.hash.slice(1);
+          $input.value = decodeURIComponent(encoded);
+          $metaOgImage.setAttribute("content",
+            \`https://hashpng.jordanscales.com/${piece}/1200/630/\${encoded}.png\`)
+        }
+
+        render();
+        $input.addEventListener("input", () => {
+          if ($input.value === "") {
+            return;
+          }
+
+          const encoded = encodeURIComponent($input.value);
+          window.location.replace("#" + encoded);
+          $metaOgImage.setAttribute("content",
+            \`https://hashpng.jordanscales.com/${piece}/1200/630/\${encoded}.png\`)
+          render();
+        });
+      })();
+    </script>
+  `;
 }
 
 /**
@@ -579,6 +707,7 @@ async function blockToHtml(block, pageId, allPages) {
   } else if (block.type === "equation") {
     return katex.renderToString(block.equation.expression, {
       displayMode: true,
+      strict: false,
     });
   } else if (block.type === "image") {
     if (block.image.type === "file") {
@@ -606,6 +735,22 @@ async function blockToHtml(block, pageId, allPages) {
     </blockquote>`;
   } else if (block.type === "divider") {
     return "<hr />";
+  } else if (block.type === "embed") {
+    /**
+     * Hacky way to embed hasharts (i.e. https://hash.jordanscales.com/knots/jdan)
+     * in cards.
+     *
+     * It's my repo so I can add this, but it should probably
+     * some sort of "plugin"
+     */
+    const hashArtRe =
+      /https:\/\/hash.jordanscales.com\/(?<piece>\w+)\/(?<seed>.+)/;
+    const match = block.embed.url.match(hashArtRe);
+    if (match && match.groups) {
+      return await getHashArtHtml(block, match.groups.piece, match.groups.seed);
+    } else {
+      console.log("Unrecognized embed --", block.embed);
+    }
   } else if (block.type === "unsupported") {
     return "[unsupported]";
   } else {
@@ -806,6 +951,13 @@ const main = async function main() {
           ? concatenateText(properties.Filename.rich_text)
           : "") || `${id.replace(/-/g, "").slice(0, 8)}.html`;
 
+      const ogImage = properties["og:image"].files[0]
+        ? await downloadImage(
+            properties["og:image"].files[0].file.url,
+            `${id}.ogImage`
+          )
+        : null;
+
       const blocks = groupAdjacentBlocksRecursively(
         groupAdjacentBlocksRecursively(
           children,
@@ -823,6 +975,7 @@ const main = async function main() {
         title,
         blocks,
         filename,
+        ogImage,
       });
     }
   );

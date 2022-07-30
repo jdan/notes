@@ -5,7 +5,7 @@
   --dimmer: #e6e6e6;
   --dimmest: #f6f6f6;
   --link-color: #787672;
-  --image-width: 360px;
+  --image-width: 460px;
 }
 
 body.dark {
@@ -32,6 +32,12 @@ img.emoji {
   width: var(--emoji-size);
   height: var(--emoji-size);
   vertical-align: bottom;
+}
+
+h1 img.emoji,
+h2 img.emoji,
+h3 img.emoji {
+  vertical-align: baseline;
 }
 
 a {
@@ -296,5 +302,56 @@ hr {
 
   footer ul a {
     padding: 14px;
+  }
+}
+
+/* Roughly: https://github.com/jdan/hashart/blob/main/pages/%5Bpiece%5D/art.module.css */
+.hashart .explanation,
+.hashart input {
+  font-family: monospace;
+  font-size: 15px;
+}
+
+.hashart input {
+  padding: 6px;
+}
+
+.hashart .canvas {
+  width: 660px;
+  height: 495px;
+  margin: 0 auto;
+  background: white;
+  border: 1px solid var(--link-color);
+}
+
+.hashart .explanation {
+  display: flex;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.hashart .bytes {
+  font-weight: bold;
+  border-top: 1px solid var(--dimmer);
+}
+
+.hashart .segment {
+  margin-right: 8px;
+}
+
+.hashart .paragraph {
+  margin: 1em 0;
+}
+
+@media (max-width: 660px) {
+  .hashart .canvas {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+  }
+
+  /* tables are hard to make responsive */
+  table {
+    overflow-x: scroll;
   }
 }
