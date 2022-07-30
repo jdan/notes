@@ -415,7 +415,7 @@ async function savePage(
       <link rel="preload" href="${settings.url(
         "prism-tomorrow.css"
       )}" as="style">
-      <link id="prism" rel="stylesheet" href=${settings.url("prism-coy.css")}">
+      <link id="prism" rel="stylesheet" href="${settings.url("prism-coy.css")}">
       <link rel="stylesheet" href=${settings.url("katex.min.css")}>
     </head>
     <body>
