@@ -21,5 +21,8 @@
         "value" : "max-age=604800"
       }]
     }
+  ],
+  "rewrites": [
+    { "source": "/fonts/:name", "destination": "/:name" }
   ]
 }

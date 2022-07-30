@@ -330,9 +330,19 @@ async function copyStaticAssets() {
   const assets = [
     path.join(__dirname, "public/style.css"),
     path.join(__dirname, "public/me.png"),
+    path.join(__dirname, "public/serve.json"),
     path.join(__dirname, "node_modules/prismjs/themes/prism-coy.css"),
     path.join(__dirname, "node_modules/prismjs/themes/prism-tomorrow.css"),
     path.join(__dirname, "node_modules/katex/dist/katex.min.css"),
+    path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Math-Italic.woff2"),
+    path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Math-Regular.woff2"),
+    path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Size4-Regular.woff2"),
+    path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Math-Italic.woff"),
+    path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Math-Regular.woff"),
+    path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Size4-Regular.woff"),
+    path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Math-Italic.ttf"),
+    path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Math-Regular.ttf"),
+    path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Size4-Regular.ttf"),
   ];
   return Promise.all(
     assets.map(async (asset) =>
