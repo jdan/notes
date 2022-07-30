@@ -43,7 +43,7 @@ const settings = new (class Settings {
   }
 
   get ogImage() {
-    return process.env.OG_IMAGE || "https://cards.jordanscales.com/me.png";
+    return process.env.OG_IMAGE || "https://notes.jordanscales.com/me.png";
   }
 
   get baseUrl() {
