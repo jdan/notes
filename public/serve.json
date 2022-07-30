@@ -1,0 +1,25 @@
+{
+  "headers": [
+    {
+      "source" : "**/*.@(jpg|jpeg|gif|png|ttf|woff|woff2)",
+      "headers" : [{
+        "key" : "Cache-Control",
+        "value" : "max-age=604800"
+      }]
+    },
+    {
+      "source" : "**/prism-coy.css",
+      "headers" : [{
+        "key" : "Cache-Control",
+        "value" : "max-age=604800"
+      }]
+    },
+    {
+      "source" : "**/prism-tomorrow.css",
+      "headers" : [{
+        "key" : "Cache-Control",
+        "value" : "max-age=604800"
+      }]
+    }
+  ]
+}
