@@ -31,6 +31,7 @@ loadLanguages([
   "docker",
   "typescript",
   "prolog",
+  "j",
 ]);
 
 /**
@@ -334,15 +335,39 @@ async function copyStaticAssets() {
     path.join(__dirname, "node_modules/prismjs/themes/prism-coy.css"),
     path.join(__dirname, "node_modules/prismjs/themes/prism-tomorrow.css"),
     path.join(__dirname, "node_modules/katex/dist/katex.min.css"),
-    path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Math-Italic.woff2"),
-    path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Main-Regular.woff2"),
-    path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Size4-Regular.woff2"),
-    path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Math-Italic.woff"),
-    path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Main-Regular.woff"),
-    path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Size4-Regular.woff"),
+    path.join(
+      __dirname,
+      "node_modules/katex/dist/fonts/KaTeX_Math-Italic.woff2"
+    ),
+    path.join(
+      __dirname,
+      "node_modules/katex/dist/fonts/KaTeX_Main-Regular.woff2"
+    ),
+    path.join(
+      __dirname,
+      "node_modules/katex/dist/fonts/KaTeX_Size4-Regular.woff2"
+    ),
+    path.join(
+      __dirname,
+      "node_modules/katex/dist/fonts/KaTeX_Math-Italic.woff"
+    ),
+    path.join(
+      __dirname,
+      "node_modules/katex/dist/fonts/KaTeX_Main-Regular.woff"
+    ),
+    path.join(
+      __dirname,
+      "node_modules/katex/dist/fonts/KaTeX_Size4-Regular.woff"
+    ),
     path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Math-Italic.ttf"),
-    path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Main-Regular.ttf"),
-    path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Size4-Regular.ttf"),
+    path.join(
+      __dirname,
+      "node_modules/katex/dist/fonts/KaTeX_Main-Regular.ttf"
+    ),
+    path.join(
+      __dirname,
+      "node_modules/katex/dist/fonts/KaTeX_Size4-Regular.ttf"
+    ),
   ];
   return Promise.all(
     assets.map(async (asset) =>
@@ -699,7 +724,13 @@ async function blockToHtml(block, pageId, allPages) {
       block.toggle.text
     )}</summary>${children.join("\n")}</details>`;
   } else if (block.type === "code") {
-    const language = block.code.language.toLowerCase();
+    const hasCustomLanguage =
+      block.code.language === "plain text" &&
+      /^lang=/.test(concatenateText(block.code.caption));
+
+    const language = hasCustomLanguage
+      ? concatenateText(block.code.caption).slice("lang=".length)
+      : block.code.language.toLowerCase();
     if (language !== "plain text" && !Prism.languages[language]) {
       console.log("Unrecognized language --", language);
     }
