@@ -185,7 +185,7 @@ const settings = new (class Settings {
 const sequelize = new Sequelize({
   dialect: "sqlite",
   storage: settings.dbFile,
-  // logging: false,
+  logging: false,
 });
 
 const Page = sequelize.define("page", {
