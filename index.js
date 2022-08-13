@@ -1008,8 +1008,7 @@ const main = async function main() {
           existingPage ||
           Page.build({
             id,
-            createdAt: new Date(created_time),
-            updatedAt: new Date(last_edited_time),
+            createdAt: created_time,
           });
 
         const title = concatenateText(properties.Name.title);
@@ -1059,7 +1058,6 @@ const main = async function main() {
 
         pages.push(pageInstance);
         existingPage.body = JSON.stringify(pageInstance);
-        existingPage.updatedAt = new Date(last_edited_time);
 
         console.log("Updating page", id);
         await existingPage.save();
