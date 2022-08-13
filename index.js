@@ -185,7 +185,7 @@ const settings = new (class Settings {
 const sequelize = new Sequelize({
   dialect: "sqlite",
   storage: settings.dbFile,
-  logging: false,
+  // logging: false,
 });
 
 const Page = sequelize.define("page", {
@@ -195,6 +195,12 @@ const Page = sequelize.define("page", {
   },
   body: {
     type: DataTypes.JSON,
+  },
+  createdAt: {
+    type: DataTypes.DATE,
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
   },
 });
 
@@ -410,13 +416,11 @@ async function copyStaticAssets() {
 const linkOfId = (allPages, id, args = {}) => {
   const page = allPages.find((entry) => entry.id === id);
   if (page) {
-    return `<a href="${settings.url(page.filename)}"${
-      page.favicon ? ` class="with-emoji"` : ""
-    }>
-      ${
-        page.favicon
-          ? `<img class="emoji" alt="" src="${settings.url(page.favicon)}">`
-          : ""
+    return `<a href="${settings.url(page.filename)}"${page.favicon ? ` class="with-emoji"` : ""
+      }>
+      ${page.favicon
+        ? `<img class="emoji" alt="" src="${settings.url(page.favicon)}">`
+        : ""
       }
       ${args.overwriteTitle || page.title}</a>`;
   } else {
@@ -439,9 +443,9 @@ async function savePage(
 
   const footer = backlinks[id]
     ? `<footer><label>mentioned in</label><ul>${backlinks[id]
-        .sort()
-        .map((id) => `<li>${linkOfId(allPages, id)}</li>`)
-        .join("\n")}</ul></footer>`
+      .sort()
+      .map((id) => `<li>${linkOfId(allPages, id)}</li>`)
+      .join("\n")}</ul></footer>`
     : "";
 
   const script = await fsPromises.readFile(
@@ -457,8 +461,8 @@ async function savePage(
     <head>
       <title>${title}</title>
       <link rel="Shortcut Icon" type="image/x-icon" href="${settings.url(
-        icon
-      )}" />
+    icon
+  )}" />
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -472,8 +476,8 @@ async function savePage(
       <link rel="stylesheet" href="${settings.url("style.css")}">
       <link rel="preload" href="${settings.url("prism-coy.css")}" as="style">
       <link rel="preload" href="${settings.url(
-        "prism-tomorrow.css"
-      )}" as="style">
+    "prism-tomorrow.css"
+  )}" as="style">
       <link id="prism" rel="stylesheet" href="${settings.url("prism-coy.css")}">
       <link rel="stylesheet" href=${settings.url("katex.min.css")}>
     </head>
@@ -484,14 +488,13 @@ async function savePage(
           <a href="${settings.baseUrl}">Home</a>
           <button id="toggle-btn" aria-label="enable dark theme">🌙</button>
         </header>
-        ${
-          headingIcon
-            ? `<div class="title-row">
+        ${headingIcon
+      ? `<div class="title-row">
                 ${headingIcon}
                 <h1>${title}</h1>
               </div>`
-            : `<h1>${title}</h1>`
-        }
+      : `<h1>${title}</h1>`
+    }
         ${content}
         ${footer}
       </main>
@@ -605,15 +608,14 @@ async function getHashArtHtml(block, piece, seed) {
     <script>
       (() => {
         const e = require("${path.join(
-          __dirname,
-          `./node_modules/hashart/art/${piece}.js`
-        )}")
+    __dirname,
+    `./node_modules/hashart/art/${piece}.js`
+  )}")
         // HACK: Each piece exports an object with a single key
         const art = new e[Object.keys(e)[0]]();
 
-        const $hashart = document.querySelector("[data-block-id='${
-          block.id
-        }']");
+        const $hashart = document.querySelector("[data-block-id='${block.id
+    }']");
         const $input = $hashart.querySelector("input");
         const $explanation = $hashart.querySelector(".explanation.inner")
         const $canvas = $hashart.querySelector("canvas");
@@ -760,10 +762,10 @@ async function blockToHtml(block, pageId, allPages) {
     }
     const code = Prism.languages[language]
       ? Prism.highlight(
-          concatenateText(block.code.text),
-          Prism.languages[language],
-          language
-        )
+        concatenateText(block.code.text),
+        Prism.languages[language],
+        language
+      )
       : concatenateText(block.code.text);
     return `<pre id="${blockId}"><code class="language-${language.replace(
       /\s/g,
@@ -788,8 +790,7 @@ async function blockToHtml(block, pageId, allPages) {
     }
   } else if (block.type === "to_do") {
     return `<div><label>
-      <input type="checkbox" onclick="return false" ${
-        block.to_do.checked ? "checked" : ""
+      <input type="checkbox" onclick="return false" ${block.to_do.checked ? "checked" : ""
       }>
       ${await textToHtml_(block.to_do.text)}
     </label></div>`;
@@ -856,7 +857,7 @@ function groupAdjacentBlocksRecursively(blocks, type, result_type) {
       // since there's no way to declare that { type: XXXX } is a discriminated
       // union (it could always be declared as `string`).
       // See https://stackoverflow.com/questions/50870423/discriminated-union-of-generic-type
-      currentList.push(/** @type {BlockToGroup} */ (block));
+      currentList.push(/** @type {BlockToGroup} */(block));
     } else {
       if (currentList.length) {
         /** @type {ResultGroup} */ const group = {
@@ -865,7 +866,7 @@ function groupAdjacentBlocksRecursively(blocks, type, result_type) {
           type: result_type,
           children: currentList,
         };
-        result.push(/** @type {CardBlock} */ (group));
+        result.push(/** @type {CardBlock} */(group));
         currentList = [];
       }
 
@@ -880,7 +881,7 @@ function groupAdjacentBlocksRecursively(blocks, type, result_type) {
       type: result_type,
       children: currentList,
     };
-    result.push(/** @type {CardBlock} */ (group));
+    result.push(/** @type {CardBlock} */(group));
   }
 
   return result;
@@ -995,7 +996,7 @@ const main = async function main() {
       database: settings.notionDatabaseId,
     },
     async (page, notion) => {
-      const { id, last_edited_time, icon, properties } = page;
+      const { id, created_time, last_edited_time, icon, properties } = page;
 
       let existingPage = await Page.findByPk(id);
       const existingPageHasUpdates =
@@ -1007,7 +1008,8 @@ const main = async function main() {
           existingPage ||
           Page.build({
             id,
-            last_edited_time,
+            createdAt: new Date(created_time),
+            updatedAt: new Date(last_edited_time),
           });
 
         const title = concatenateText(properties.Name.title);
@@ -1019,9 +1021,8 @@ const main = async function main() {
         //
         // Probably better to just send the emoji down.
         const headingIcon = icon
-          ? `<img width="32" height="32" alt="${
-              icon.type === "emoji" ? icon.emoji : ""
-            }" src="${settings.url(favicon)}" />`
+          ? `<img width="32" height="32" alt="${icon.type === "emoji" ? icon.emoji : ""
+          }" src="${settings.url(favicon)}" />`
           : null;
 
         const filename =
@@ -1031,9 +1032,9 @@ const main = async function main() {
 
         const ogImage = properties["og:image"].files[0]
           ? await downloadImage(
-              properties["og:image"].files[0].file.url,
-              `${id}.ogImage`
-            )
+            properties["og:image"].files[0].file.url,
+            `${id}.ogImage`
+          )
           : null;
 
         const blocks = groupAdjacentBlocksRecursively(
@@ -1058,6 +1059,7 @@ const main = async function main() {
 
         pages.push(pageInstance);
         existingPage.body = JSON.stringify(pageInstance);
+        existingPage.updatedAt = new Date(last_edited_time);
 
         console.log("Updating page", id);
         await existingPage.save();
