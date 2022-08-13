@@ -17,6 +17,8 @@ const Prism = require("prismjs");
 const loadLanguages = require("prismjs/components/");
 const mimeTypes = require("mime-types");
 
+const { Sequelize, Op, Model, DataTypes } = require("sequelize");
+
 /** @typedef {import('@notionhq/client').Client } NotionClient */
 /** @typedef {import('@notionhq/client/build/src/api-endpoints').GetBlockResponse } GetBlockResponse */
 /** @typedef {Extract<GetBlockResponse, { type: string }>} Block */
@@ -76,6 +78,10 @@ const settings = new (class Settings {
       throw new Error("Missing NOTION_DATABASE_ID env variable");
     }
     return NOTION_DATABASE_ID;
+  }
+
+  get dbFile() {
+    return process.env.SQLITE_DB_FILE || "db.sqlite3";
   }
 
   /**
@@ -175,6 +181,24 @@ const settings = new (class Settings {
     content?: string
   }} CardPage
 */
+
+const sequelize = new Sequelize({
+  dialect: "sqlite",
+  storage: settings.dbFile,
+  logging: false,
+});
+
+const Page = sequelize.define("page", {
+  id: {
+    type: DataTypes.STRING,
+    primaryKey: true,
+  },
+  body: {
+    type: DataTypes.JSON,
+  },
+});
+
+Page.sync();
 
 const sha = childProcess
   .execSync("git rev-parse HEAD", { cwd: __dirname })
@@ -971,53 +995,73 @@ const main = async function main() {
       database: settings.notionDatabaseId,
     },
     async (page, notion) => {
-      const { id, icon, properties } = page;
+      const { id, last_edited_time, icon, properties } = page;
 
-      const title = concatenateText(properties.Name.title);
-      const children = await getChildren(notion, id);
-      const favicon = await saveFavicon(id, icon);
+      let existingPage = await Page.findByPk(id);
+      const existingPageHasUpdates =
+        new Date(last_edited_time).getTime() >
+        new Date(existingPage?.updatedAt).getTime();
 
-      // headingIcon is generated here so it can have the
-      // emoji character as its alt text.
-      //
-      // Probably better to just send the emoji down.
-      const headingIcon = icon
-        ? `<img width="32" height="32" alt="${
-            icon.type === "emoji" ? icon.emoji : ""
-          }" src="${settings.url(favicon)}" />`
-        : null;
+      if (!existingPage || existingPageHasUpdates) {
+        existingPage =
+          existingPage ||
+          Page.build({
+            id,
+            last_edited_time,
+          });
 
-      const filename =
-        (properties.Filename
-          ? concatenateText(properties.Filename.rich_text)
-          : "") || `${id.replace(/-/g, "").slice(0, 8)}.html`;
+        const title = concatenateText(properties.Name.title);
+        const children = await getChildren(notion, id);
+        const favicon = await saveFavicon(id, icon);
 
-      const ogImage = properties["og:image"].files[0]
-        ? await downloadImage(
-            properties["og:image"].files[0].file.url,
-            `${id}.ogImage`
-          )
-        : null;
+        // headingIcon is generated here so it can have the
+        // emoji character as its alt text.
+        //
+        // Probably better to just send the emoji down.
+        const headingIcon = icon
+          ? `<img width="32" height="32" alt="${
+              icon.type === "emoji" ? icon.emoji : ""
+            }" src="${settings.url(favicon)}" />`
+          : null;
 
-      const blocks = groupAdjacentBlocksRecursively(
-        groupAdjacentBlocksRecursively(
-          children,
-          "numbered_list_item",
-          "numbered_list"
-        ),
-        "bulleted_list_item",
-        "bulleted_list"
-      );
+        const filename =
+          (properties.Filename
+            ? concatenateText(properties.Filename.rich_text)
+            : "") || `${id.replace(/-/g, "").slice(0, 8)}.html`;
 
-      pages.push({
-        id,
-        headingIcon,
-        favicon,
-        title,
-        blocks,
-        filename,
-        ogImage,
-      });
+        const ogImage = properties["og:image"].files[0]
+          ? await downloadImage(
+              properties["og:image"].files[0].file.url,
+              `${id}.ogImage`
+            )
+          : null;
+
+        const blocks = groupAdjacentBlocksRecursively(
+          groupAdjacentBlocksRecursively(
+            children,
+            "numbered_list_item",
+            "numbered_list"
+          ),
+          "bulleted_list_item",
+          "bulleted_list"
+        );
+
+        const pageInstance = {
+          id,
+          headingIcon,
+          favicon,
+          title,
+          blocks,
+          filename,
+          ogImage,
+        };
+
+        pages.push(pageInstance);
+        existingPage.body = JSON.stringify(pageInstance);
+
+        console.log("Updating page", id);
+        await existingPage.save();
+      }
     }
   );
 

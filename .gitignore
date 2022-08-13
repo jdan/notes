@@ -3,3 +3,4 @@ build_tmp/
 node_modules/
 /.env*
 /env.*
+*.sqlite3
