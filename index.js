@@ -320,7 +320,8 @@ async function textToHtml(pageId, text, allPages) {
           overwriteTitle: content,
         });
       } else {
-        return `<a href="${text.text.link.url}">${content}</a>`;
+        // rel="me" for mastodon
+        return "https://mastodon.xyz/@jordan" === text.text.link.url ? `<a rel="me" href="${text.text.link.url}">${content}</a>` : `<a href="${text.text.link.url}">${content}</a>`;
       }
     } else {
       return content;
