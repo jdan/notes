@@ -269,6 +269,41 @@ hr {
   background: var(--font-color);
 }
 
+h1,
+h2,
+h3 {
+  position: relative;
+  padding-left: 48px;
+  left: -48px;
+}
+
+h1 .link,
+h2 .link,
+h3 .link {
+  position: absolute;
+  display: none;
+  left: 16px;
+  text-decoration: none;
+}
+
+h1 .link {
+  left: 8px;
+}
+
+h2 .link {
+  left: 16px;
+}
+
+h3 .link {
+  left: 24px;
+}
+
+h1:hover .link,
+h2:hover .link,
+h3:hover .link {
+  display: block;
+}
+
 @media (max-width: 660px) {
   :root {
     --image-width: 100%;
@@ -302,6 +337,12 @@ hr {
 
   footer ul a {
     padding: 14px;
+  }
+
+  h1:hover .link,
+  h2:hover .link,
+  h3:hover .link {
+    display: none;
   }
 }
 

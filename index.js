@@ -250,6 +250,14 @@ function concatenateText(arr) {
   }
 }
 
+/**
+ * @param {string} str
+ * @returns string
+ */
+function sluggify(str) {
+  return str.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
+
 /** @param {string} str containing an ISO *date*, eg yyyy-mm-dd */
 function relativeDate(str) {
   const [year, month, day] = str.split("-").map((i) => parseInt(i));
@@ -749,17 +757,29 @@ async function blockToHtml(block, pageId, allPages) {
       <div class="children">${children.join("\n")}</div>
     </div>`;
   } else if (block.type === "heading_1") {
-    return `<h1 id="${blockId}">${await textToHtml_(
-      block.heading_1.text
-    )}</h1>`;
+    const text = await textToHtml_(block.heading_1.text);
+    const id = sluggify(text);
+
+    return `<h1 id="${id}">
+      <a href="#${id}" class="link">🔗</a>
+      ${text}
+    </h1>`;
   } else if (block.type === "heading_2") {
-    return `<h2 id="${blockId}">${await textToHtml_(
-      block.heading_2.text
-    )}</h2>`;
+    const text = await textToHtml_(block.heading_2.text);
+    const id = sluggify(text);
+
+    return `<h2 id="${id}">
+      <a href="#${id}" class="link">🔗</a>
+      ${text}
+    </h2>`;
   } else if (block.type === "heading_3") {
-    return `<h3 id="${blockId}">${await textToHtml_(
-      block.heading_3.text
-    )}</h3>`;
+    const text = await textToHtml_(block.heading_3.text);
+    const id = sluggify(text);
+
+    return `<h3 id="${id}">
+      <a href="#${id}" class="link">🔗</a>
+      ${text}
+    </h3>`;
   } else if (block.type === "toggle") {
     return `<details id="${blockId}"><summary>${await textToHtml_(
       block.toggle.text
