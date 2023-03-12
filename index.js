@@ -42,6 +42,8 @@ loadLanguages([
   "typescript",
   "prolog",
   "j",
+  "python",
+  "sql",
 ]);
 
 /**
