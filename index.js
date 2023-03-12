@@ -369,12 +369,12 @@ async function textToHtml(pageId, text, allPages) {
         return `${longDate} – ${time}`;
       }
     } else {
-      console.log("Unrecognized mention --", text);
+      console.log(pageId, "Unrecognized mention --", text.mention);
     }
   } else if (text.type === "equation") {
     return katex.renderToString(text.equation.expression, { strict: false });
   } else {
-    console.log("Unrecognized text --", text);
+    console.log(pageId, "Unrecognized text --", text);
   }
 }
 
@@ -795,7 +795,7 @@ async function blockToHtml(block, pageId, allPages) {
       ? concatenateText(block.code.caption).slice("lang=".length)
       : block.code.language.toLowerCase();
     if (language !== "plain text" && !Prism.languages[language]) {
-      console.log("Unrecognized language --", language);
+      console.log(pageId, "Unrecognized language --", language);
     }
     const code = Prism.languages[language]
       ? Prism.highlight(
@@ -823,7 +823,7 @@ async function blockToHtml(block, pageId, allPages) {
         <figcaption>${caption}</figcaption>
       </figure>`;
     } else {
-      console.log("Unrecognized image", block);
+      console.log(pageId, "Unrecognized image", block);
     }
   } else if (block.type === "to_do") {
     return `<div><label>
@@ -853,12 +853,12 @@ async function blockToHtml(block, pageId, allPages) {
     if (match && match.groups) {
       return await getHashArtHtml(block, match.groups.piece, match.groups.seed);
     } else {
-      console.log("Unrecognized embed --", block.embed);
+      console.log(pageId, "Unrecognized embed --", block.embed.url);
     }
   } else if (block.type === "unsupported") {
     return "[unsupported]";
   } else {
-    console.log("Unrecognized block --", block);
+    console.log(pageId, "Unrecognized block --", block.type);
   }
 }
 
@@ -1008,7 +1008,7 @@ async function saveEmojiFavicon(emoji) {
     basename
   );
   if (!fs.existsSync(filename)) {
-    console.log("Unknown emoji --", emoji, codepoints);
+    console.log(pageId, "Unknown emoji --", emoji, codepoints);
   }
   const dest = settings.output(basename);
   if (!fs.existsSync(dest)) {
@@ -1018,7 +1018,7 @@ async function saveEmojiFavicon(emoji) {
 }
 
 const main = async function main() {
-  console.log(settings.info());
+  console.log("\n\n", new Date(), "\n", settings.info());
 
   /** @type {CardPage[]} */ const pages = [];
 
