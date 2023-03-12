@@ -23,7 +23,7 @@ const mimeTypes = require("mime-types");
  *
  * In the meantime, we'll disable it.
  */
-const DISABLE_CACHE = true;
+const DISABLE_CACHE = false;
 
 const { Sequelize, Op, Model, DataTypes } = require("sequelize");
 
@@ -1098,6 +1098,9 @@ const main = async function main() {
 
         console.log("Updating page", id);
         await existingPage.save();
+      } else {
+        // Use the cached page
+        pages.push(JSON.parse(existingPage.body));
       }
     }
   );
