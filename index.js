@@ -420,6 +420,11 @@ async function copyStaticAssets() {
       __dirname,
       "node_modules/katex/dist/fonts/KaTeX_Size4-Regular.ttf"
     ),
+    path.join(__dirname, "node_modules/react/umd/react.production.min.js"),
+    path.join(
+      __dirname,
+      "node_modules/react-dom/umd/react-dom.production.min.js"
+    ),
   ];
   return Promise.all(
     assets.map(async (asset) =>
@@ -878,12 +883,16 @@ async function renderPreview(pageId, block) {
     const result = ts.transpileModule(code, {
       compilerOptions: {
         target: ts.ScriptTarget.ES2015,
-        module: ts.ModuleKind.ES2015,
+        // module: ts.ModuleKind.ES2015,
         jsx: ts.JsxEmit.React,
         jsxFactory: "React.createElement",
       },
     });
-    return `<script>${result.outputText}</script>`;
+    return `
+      <script src="/react.production.min.js"></script>
+      <script src="/react-dom.production.min.js"></script>
+      <script type="module">${result.outputText}</script>
+    `;
   } else {
     console.log(pageId, "Unrecognized preview language --", language);
   }
