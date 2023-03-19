@@ -16,6 +16,7 @@ const katex = require("katex");
 const Prism = require("prismjs");
 const loadLanguages = require("prismjs/components/");
 const mimeTypes = require("mime-types");
+const ts = require("typescript");
 
 /**
  * The sqlite cache of post data only gets busted with createdAt, so
@@ -873,6 +874,16 @@ async function renderPreview(pageId, block) {
 
   if (language === "html") {
     return code;
+  } else if (language === "typescript") {
+    const result = ts.transpileModule(code, {
+      compilerOptions: {
+        target: ts.ScriptTarget.ES2015,
+        module: ts.ModuleKind.ES2015,
+        jsx: ts.JsxEmit.React,
+        jsxFactory: "React.createElement",
+      },
+    });
+    return `<script>${result.outputText}</script>`;
   } else {
     console.log(pageId, "Unrecognized preview language --", language);
   }

@@ -20,7 +20,8 @@
     "notion-for-each-row": "1.0.2",
     "prismjs": "^1.25.0",
     "sequelize": "^6.21.3",
-    "sqlite3": "^5.0.11"
+    "sqlite3": "^5.0.11",
+    "typescript": "^4.5.4"
   },
   "devDependencies": {
     "@types/browserify": "^12.0.37",
@@ -33,7 +34,6 @@
     "concurrently": "^7.0.0",
     "nodemon": "^2.0.15",
     "serve": "^13.0.2",
-    "typescript": "^4.5.4",
     "typesync": "^0.8.0"
   }
 }
