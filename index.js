@@ -787,6 +787,11 @@ async function blockToHtml(block, pageId, allPages) {
       block.toggle.text
     )}</summary>${children.join("\n")}</details>`;
   } else if (block.type === "code") {
+    const isPreview = /preview=true/.test(concatenateText(block.code.caption));
+    if (isPreview) {
+      return await renderPreview(pageId, block);
+    }
+
     const hasCustomLanguage =
       block.code.language === "plain text" &&
       /^lang=/.test(concatenateText(block.code.caption));
@@ -859,6 +864,17 @@ async function blockToHtml(block, pageId, allPages) {
     return "[unsupported]";
   } else {
     console.log(pageId, "Unrecognized block --", block.type);
+  }
+}
+
+async function renderPreview(pageId, block) {
+  const code = concatenateText(block.code.text);
+  const language = block.code.language.toLowerCase();
+
+  if (language === "html") {
+    return code;
+  } else {
+    console.log(pageId, "Unrecognized preview language --", language);
   }
 }
 
