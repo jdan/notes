@@ -879,6 +879,10 @@ async function renderPreview(pageId, block) {
 
   if (language === "html") {
     return code;
+  } else if (language === "javascript") {
+    return `
+      <script>${code}</script>
+    `;
   } else if (language === "typescript") {
     const result = ts.transpileModule(code, {
       compilerOptions: {
@@ -891,7 +895,7 @@ async function renderPreview(pageId, block) {
     return `
       <script src="/react.production.min.js"></script>
       <script src="/react-dom.production.min.js"></script>
-      <script type="module">${result.outputText}</script>
+      <script>${result.outputText}</script>
     `;
   } else {
     console.log(pageId, "Unrecognized preview language --", language);
