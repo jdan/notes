@@ -868,6 +868,8 @@ async function blockToHtml(block, pageId, allPages) {
     }
   } else if (block.type === "unsupported") {
     return "[unsupported]";
+  } else if (block.type === "synced_block") {
+    return children.join("\n");
   } else {
     console.log(pageId, "Unrecognized block --", block.type);
   }
