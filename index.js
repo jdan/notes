@@ -18,13 +18,9 @@ const loadLanguages = require("prismjs/components/");
 const mimeTypes = require("mime-types");
 const ts = require("typescript");
 
-/**
- * The sqlite cache of post data only gets busted with createdAt, so
- * backlinks and mentions don't work too great.
- *
- * In the meantime, we'll disable it.
- */
-const DISABLE_CACHE = false;
+// Set to the block ID to debug it
+const DEBUG = null;
+// const DEBUG = "fe053dd4-76c3-4ed6-8137-24b7e319599c";
 
 const { Sequelize, Op, Model, DataTypes } = require("sequelize");
 
@@ -730,6 +726,10 @@ async function blockToHtml(block, pageId, allPages) {
    * @param {RichText[]} texts
    * @returns
    */
+  if (pageId === DEBUG) {
+    console.log("[DEBUG]", block.type, block.id);
+  }
+
   const textToHtml_ = async (texts) => {
     const converts = await Promise.all(
       texts.map((text) => textToHtml(pageId, text, allPages))
@@ -876,6 +876,8 @@ async function blockToHtml(block, pageId, allPages) {
   } else if (block.type === "unsupported") {
     return "[unsupported]";
   } else if (block.type === "synced_block") {
+    // TODO: synced_from instead of children: []
+    // not sure what the difference is
     return children.join("\n");
   } else {
     console.log(pageId, "Unrecognized block --", block.type);
@@ -1090,7 +1092,7 @@ const main = async function main() {
         new Date(last_edited_time).getTime() >
         new Date(existingPage?.updatedAt).getTime();
 
-      if (DISABLE_CACHE || !existingPage || existingPageHasUpdates) {
+      if (id === DEBUG || !existingPage || existingPageHasUpdates) {
         existingPage =
           existingPage ||
           Page.build({
