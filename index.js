@@ -789,6 +789,13 @@ async function blockToHtml(block, pageId, allPages) {
       ${text}
     </h3>`;
   } else if (block.type === "toggle") {
+    // Toggles that start with !hide don't render as a summary
+    // and just display their contents
+    const toggleText = concatenateText(block.toggle.text);
+    if (/^!hide/.test(toggleText)) {
+      return children.join("\n");
+    }
+
     return `<details id="${blockId}"><summary>${await textToHtml_(
       block.toggle.text
     )}</summary>${children.join("\n")}</details>`;
