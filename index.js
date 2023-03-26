@@ -365,6 +365,9 @@ async function textToHtml(pageId, text, allPages) {
         );
         return `${longDate} – ${time}`;
       }
+    } else if (text.mention.type === "template_mention") {
+      // Template mentions are a no-op
+      return "";
     } else {
       console.log(pageId, "Unrecognized mention --", text.mention);
     }
@@ -879,6 +882,9 @@ async function blockToHtml(block, pageId, allPages) {
     // TODO: synced_from instead of children: []
     // not sure what the difference is
     return children.join("\n");
+  } else if (block.type === "template") {
+    // templates are using in pages, but no-ops when rendering
+    return "";
   } else {
     console.log(pageId, "Unrecognized block --", block.type);
   }
