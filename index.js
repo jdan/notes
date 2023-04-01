@@ -771,8 +771,6 @@ async function renderPreview(pageId, block) {
       },
     });
     return `
-      <script src="/react.production.min.js"></script>
-      <script src="/react-dom.production.min.js"></script>
       <script>${result.outputText}</script>
     `;
   } else {
