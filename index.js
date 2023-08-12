@@ -746,6 +746,15 @@ async function blockToHtml(block, pageId, allPages) {
   } else if (block.type === "template") {
     // templates are using in pages, but no-ops when rendering
     return "";
+  } else if (block.type === "embed") {
+    if (block.embed.url.startsWith("https://www.val.town/v/")) {
+      // extract an id
+      // https://www.val.town/v/jdan.coupleHoldingHands -> jdan.coupleHoldingHands
+      const id = block.embed.url.slice("https://www.val.town/v/".length);
+      return `<iframe src="https://www.val.town/embed/${id}" frameborder="0" allowfullscreen style="width: 100%; height: 400px"></iframe>`;
+    } else {
+      console.log(pageId, "Unrecognized embed --", block.embed.url);
+    }
   } else {
     console.log(pageId, "Unrecognized block --", block.type);
   }
@@ -951,12 +960,16 @@ const main = async function main() {
     },
     async (page, notion) => {
       const { id, created_time, last_edited_time, icon, properties } = page;
+      if (DEBUG && id !== DEBUG) {
+        return;
+      }
+
       let existingPage = await Page.findByPk(id);
       const existingPageHasUpdates =
         new Date(last_edited_time).getTime() >
         new Date(existingPage?.updatedAt).getTime();
 
-      if (id === DEBUG || !existingPage || existingPageHasUpdates) {
+      if (DEBUG || !existingPage || existingPageHasUpdates) {
         existingPage =
           existingPage ||
           Page.build({
