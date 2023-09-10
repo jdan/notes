@@ -507,6 +507,8 @@ async function savePage(
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
 
+      <link rel="alternate" type="application/atom+xml" title="Feed" href="https://notes.jordanscales.com/feed.atom">
+
       <meta property="og:title" content="${title}" />
       <meta property="og:image" content="${metaImage}" />
 
