@@ -23,6 +23,7 @@ const DEBUG = null;
 // const DEBUG = "fe053dd4-76c3-4ed6-8137-24b7e319599c";
 
 const { Sequelize, Op, Model, DataTypes } = require("sequelize");
+const { Feed } = require("feed");
 
 /** @typedef {import('@notionhq/client').Client } NotionClient */
 /** @typedef {import('@notionhq/client/build/src/api-endpoints').GetBlockResponse } GetBlockResponse */
@@ -461,11 +462,23 @@ const linkOfId = (allPages, id, args = {}) => {
  * @param {CardPage} page
  * @param {typeof backlinks} backlinks
  * @param {CardPage[]} allPages
+ * @param {Feed} feed
  */
 async function savePage(
-  { id, title, favicon, headingIcon, content, filename, ogImage },
+  {
+    id,
+    title,
+    created,
+    favicon,
+    headingIcon,
+    content,
+    filename,
+    publishToRss,
+    ogImage,
+  },
   backlinks,
-  allPages
+  allPages,
+  feed
 ) {
   const icon = favicon || (await saveEmojiFavicon("💡"));
 
@@ -532,6 +545,24 @@ async function savePage(
     </html>
   `;
   await fsPromises.writeFile(settings.output(filename), body);
+
+  if (publishToRss) {
+    feed.addItem({
+      title,
+      id: settings.url(filename),
+      link: settings.url(filename),
+      content: body,
+      author: [
+        {
+          name: "Jordan Scales",
+          email: "me@jordanscales.com",
+          link: "https://jordanscales.com",
+        },
+      ],
+      date: new Date(created),
+      image: metaImage,
+    });
+  }
 }
 
 /**
@@ -1003,6 +1034,8 @@ const main = async function main() {
             )
           : null;
 
+        const publishToRss = properties["Publish to RSS"].checkbox;
+
         const blocks = groupAdjacentBlocksRecursively(
           groupAdjacentBlocksRecursively(
             children,
@@ -1021,6 +1054,8 @@ const main = async function main() {
           blocks,
           filename,
           ogImage,
+          created: created_time,
+          publishToRss,
         };
 
         pages.push(pageInstance);
@@ -1044,10 +1079,32 @@ const main = async function main() {
     })
   );
 
-  Promise.all([
-    ...pages.map((page) => savePage(page, backlinks, pages)),
+  const favicon = await saveEmojiFavicon("👋");
+  const feed = new Feed({
+    title: "notes.jordanscales.com",
+    description: "Jordan's working notes",
+    id: settings.url("/"),
+    link: settings.url(""),
+    language: "en",
+    image: settings.ogImage,
+    favicon: settings.url(favicon),
+    copyright: "CC BY-NC 4.0 Jordan Scales",
+    feedLinks: {
+      atom: settings.url("feed.atom"),
+    },
+    author: {
+      name: "Jordan Scales",
+      email: "me@jordanscales.com",
+      link: "https://jordanscales.com",
+    },
+  });
+
+  await Promise.all([
+    ...pages.map((page) => savePage(page, backlinks, pages, feed)),
     copyStaticAssets(),
   ]);
+
+  await fs.promises.writeFile(settings.output("feed.atom"), feed.atom1());
 };
 
 (async () => {
