@@ -967,7 +967,7 @@ async function saveEmojiFavicon(emoji) {
     basename
   );
   if (!fs.existsSync(filename)) {
-    console.log(pageId, "Unknown emoji --", emoji, codepoints);
+    console.log("Unknown emoji --", emoji, codepoints);
   }
   const dest = settings.output(basename);
   if (!fs.existsSync(dest)) {
