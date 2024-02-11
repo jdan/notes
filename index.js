@@ -42,6 +42,7 @@ loadLanguages([
   "j",
   "python",
   "sql",
+  "bqn",
 ]);
 
 /**
