@@ -960,7 +960,9 @@ async function saveFavicon(pageId, icon) {
  */
 async function saveEmojiFavicon(emoji) {
   const codepoints = emojiUnicode(emoji).split(" ").join("-");
-  const basename = `${codepoints}.png`;
+  const basename =
+    // TODO: unsure why we're looking for 31-, or why emoji-datasource has 0031-
+    codepoints === "31-fe0f-20e3" ? "0031-fe0f-20e3.png" : `${codepoints}.png`;
   const filename = path.join(
     __dirname,
     "node_modules/emoji-datasource-apple/img/apple/64",
