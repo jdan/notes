@@ -218,7 +218,7 @@ details > :not(summary) {
   display: flex;
   margin: var(--heading1--margin) 0 var(--heading1--margin)
     calc(-1 * (var(--emoji-gap) + var(--emoji-width)));
-  align-items: center;
+  align-items: baseline;
 }
 
 .title-row h1 {
@@ -227,6 +227,8 @@ details > :not(summary) {
 
 .title-row img {
   margin-right: var(--emoji-gap);
+  position: relative;
+  top: 4px;
   width: var(--emoji-width);
 }
 
@@ -323,6 +325,10 @@ h3:hover .link {
 
   .title-row h1 {
     margin-top: 4px;
+  }
+
+  .title-row img {
+    top: 0;
   }
 
   pre code {
