@@ -781,13 +781,25 @@ async function blockToHtml(block, pageId, allPages) {
     // templates are using in pages, but no-ops when rendering
     return "";
   } else if (block.type === "embed") {
-    if (block.embed.url.startsWith("https://www.val.town/v/")) {
+    const prefix = "https://www.val.town/v/";
+    if (block.embed.url.startsWith(prefix)) {
       // extract an id
       // https://www.val.town/v/jdan.coupleHoldingHands -> jdan.coupleHoldingHands
-      const id = block.embed.url.slice("https://www.val.town/v/".length);
+      const id = block.embed.url.slice(prefix.length);
       return `<iframe src="https://www.val.town/embed/${id}" frameborder="0" allowfullscreen style="width: 100%; height: 400px"></iframe>`;
     } else {
       console.log(pageId, "Unrecognized embed --", block.embed.url);
+    }
+  } else if (block.type === "video") {
+    const prefix = "https://www.youtube.com/watch?v=";
+    if (
+      block.video.type === "external" &&
+      block.video.external.url.startsWith(prefix)
+    ) {
+      const id = block.video.external.url.slice(prefix.length);
+      return `<iframe width="100%" height="400" src="https://www.youtube.com/embed/${id}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+    } else {
+      console.log(pageId, "Unrecognized video --", block.video);
     }
   } else {
     console.log(pageId, "Unrecognized block --", block.type);
