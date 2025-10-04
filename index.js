@@ -216,17 +216,6 @@ const Page = sequelize.define("page", {
 
 Page.sync();
 
-const sha = childProcess
-  .execSync("git rev-parse HEAD", { cwd: __dirname })
-  .toString()
-  .trim();
-let id = 1;
-function getDeterministicUUID() {
-  const shasum = crypto.createHash("sha1");
-  shasum.update(sha);
-  shasum.update("" + id++);
-  return addDashes(shasum.digest("hex"));
-}
 
 /**
  * @param {string} id a UUID string
@@ -871,7 +860,7 @@ function groupAdjacentBlocksRecursively(blocks, type, result_type) {
     } else {
       if (currentList.length) {
         /** @type {ResultGroup} */ const group = {
-          id: getDeterministicUUID(),
+          id: "p-" + currentList[0].id,
           has_children: true,
           type: result_type,
           children: currentList,
@@ -886,7 +875,7 @@ function groupAdjacentBlocksRecursively(blocks, type, result_type) {
 
   if (currentList.length) {
     /** @type {ResultGroup} */ const group = {
-      id: getDeterministicUUID(),
+      id: "p-" + currentList[0].id,
       has_children: true,
       type: result_type,
       children: currentList,
