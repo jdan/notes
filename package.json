@@ -26,6 +26,7 @@
     "typescript": "^4.5.4"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.2.5",
     "@types/browserify": "^12.0.37",
     "@types/katex": "^0.11.1",
     "@types/mime-types": "^2.1.1",

@@ -1,6 +1,6 @@
 require("dotenv").config({
-  path: process.env.CONFIG,
-  debug: Boolean(process.env.CONFIG),
+	path: process.env.CONFIG,
+	debug: Boolean(process.env.CONFIG),
 });
 const browserify = require("browserify");
 const childProcess = require("child_process");
@@ -32,18 +32,18 @@ const { Feed } = require("feed");
 /** @typedef {import('@notionhq/client/build/src/api-endpoints').GetPageResponse } Page */
 
 loadLanguages([
-  "ocaml",
-  "scheme",
-  "diff",
-  "shell",
-  "docker",
-  "typescript",
-  "prolog",
-  "j",
-  "python",
-  "sql",
-  "bqn",
-  "ruby",
+	"ocaml",
+	"scheme",
+	"diff",
+	"shell",
+	"docker",
+	"typescript",
+	"prolog",
+	"j",
+	"python",
+	"sql",
+	"bqn",
+	"ruby",
 ]);
 
 /**
@@ -51,72 +51,72 @@ loadLanguages([
  * Override these!
  */
 const settings = new (class Settings {
-  get twitterHandle() {
-    return process.env.TWITTER_HANDLE || "jdan";
-  }
+	get twitterHandle() {
+		return process.env.TWITTER_HANDLE || "jdan";
+	}
 
-  get ogImage() {
-    return process.env.OG_IMAGE || "https://notes.jordanscales.com/me.png";
-  }
+	get ogImage() {
+		return process.env.OG_IMAGE || "https://notes.jordanscales.com/me.png";
+	}
 
-  get baseUrl() {
-    return process.env.BASE_URL || "/";
-  }
+	get baseUrl() {
+		return process.env.BASE_URL || "/";
+	}
 
-  get outputDir() {
-    return (
-      process.env.BUILD ||
-      path.join(
-        __dirname,
-        "build",
-        this.baseUrl[0] === "/" ? this.baseUrl.slice(1) : "."
-      )
-    );
-  }
+	get outputDir() {
+		return (
+			process.env.BUILD ||
+			path.join(
+				__dirname,
+				"build",
+				this.baseUrl[0] === "/" ? this.baseUrl.slice(1) : ".",
+			)
+		);
+	}
 
-  get notionSecret() {
-    const { NOTION_SECRET } = process.env;
-    if (!NOTION_SECRET) {
-      throw new Error("Missing NOTION_SECRET env variable");
-    }
-    return NOTION_SECRET;
-  }
+	get notionSecret() {
+		const { NOTION_SECRET } = process.env;
+		if (!NOTION_SECRET) {
+			throw new Error("Missing NOTION_SECRET env variable");
+		}
+		return NOTION_SECRET;
+	}
 
-  get notionDatabaseId() {
-    const { NOTION_DATABASE_ID } = process.env;
-    if (!NOTION_DATABASE_ID) {
-      throw new Error("Missing NOTION_DATABASE_ID env variable");
-    }
-    return NOTION_DATABASE_ID;
-  }
+	get notionDatabaseId() {
+		const { NOTION_DATABASE_ID } = process.env;
+		if (!NOTION_DATABASE_ID) {
+			throw new Error("Missing NOTION_DATABASE_ID env variable");
+		}
+		return NOTION_DATABASE_ID;
+	}
 
-  get dbFile() {
-    return process.env.SQLITE_DB_FILE || "db.sqlite3";
-  }
+	get dbFile() {
+		return process.env.SQLITE_DB_FILE || "db.sqlite3";
+	}
 
-  /**
-   * @param {string} part
-   */
-  url(part) {
-    return this.baseUrl + part;
-  }
+	/**
+	 * @param {string} part
+	 */
+	url(part) {
+		return this.baseUrl + part;
+	}
 
-  /**
-   * @param {string} part
-   */
-  output(part) {
-    return path.join(this.outputDir, part);
-  }
+	/**
+	 * @param {string} part
+	 */
+	output(part) {
+		return path.join(this.outputDir, part);
+	}
 
-  info() {
-    return {
-      outputDir: this.outputDir,
-      baseUrl: this.baseUrl,
-      notionDatabaseId: this.notionDatabaseId,
-      twitterHandle: this.twitterHandle,
-      ogImage: this.ogImage,
-    };
-  }
+	info() {
+		return {
+			outputDir: this.outputDir,
+			baseUrl: this.baseUrl,
+			notionDatabaseId: this.notionDatabaseId,
+			twitterHandle: this.twitterHandle,
+			ogImage: this.ogImage,
+		};
+	}
 })();
 
 // We preload all blocks in every page then transform the block data model so
@@ -193,52 +193,51 @@ const settings = new (class Settings {
 */
 
 const sequelize = new Sequelize({
-  dialect: "sqlite",
-  storage: settings.dbFile,
-  logging: false,
+	dialect: "sqlite",
+	storage: settings.dbFile,
+	logging: false,
 });
 
 const Page = sequelize.define("page", {
-  id: {
-    type: DataTypes.STRING,
-    primaryKey: true,
-  },
-  body: {
-    type: DataTypes.JSON,
-  },
-  createdAt: {
-    type: DataTypes.DATE,
-  },
-  updatedAt: {
-    type: DataTypes.DATE,
-  },
+	id: {
+		type: DataTypes.STRING,
+		primaryKey: true,
+	},
+	body: {
+		type: DataTypes.JSON,
+	},
+	createdAt: {
+		type: DataTypes.DATE,
+	},
+	updatedAt: {
+		type: DataTypes.DATE,
+	},
 });
 
 Page.sync();
-
 
 /**
  * @param {string} id a UUID string
  */
 function addDashes(id) {
-  return [
-    id.slice(0, 8),
-    id.slice(8, 12),
-    id.slice(12, 16),
-    id.slice(16, 20),
-    id.slice(20, 32),
-  ].join("-");
+	return [
+		id.slice(0, 8),
+		id.slice(8, 12),
+		id.slice(12, 16),
+		id.slice(16, 20),
+		id.slice(20, 32),
+	].join("-");
 }
 
 /**
  * @param {Array<RichText> | undefined} arr
  */
 function concatenateText(arr) {
-  if (arr) {
-    return arr.map((i) => i.plain_text).join("");
-  } else {
-    return "";
-  }
+	if (arr) {
+		return arr.map((i) => i.plain_text).join("");
+	} else {
+		return "";
+	}
 }
 
 /**
@@ -246,28 +245,28 @@ function concatenateText(arr) {
  * @returns string
  */
 function sluggify(str) {
-  return str.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+	return str.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 }
 
 /** @param {string} str containing an ISO *date*, eg yyyy-mm-dd */
 function relativeDate(str) {
-  const [year, month, day] = str.split("-").map((i) => parseInt(i));
+	const [year, month, day] = str.split("-").map((i) => parseInt(i));
 
-  const date = new Date();
-  date.setFullYear(year);
-  date.setMonth(month - 1);
-  date.setDate(day);
+	const date = new Date();
+	date.setFullYear(year);
+	date.setMonth(month - 1);
+	date.setDate(day);
 
-  const deltaDays = Math.round(
-    (date.getTime() - Date.now()) / (1000 * 3600 * 24)
-  );
+	const deltaDays = Math.round(
+		(date.getTime() - Date.now()) / (1000 * 3600 * 24),
+	);
 
-  const relative = new Intl.RelativeTimeFormat("en", {
-    numeric: "auto",
-  });
+	const relative = new Intl.RelativeTimeFormat("en", {
+		numeric: "auto",
+	});
 
-  const formatted = relative.format(deltaDays, "days");
-  return formatted[0].toUpperCase() + formatted.slice(1);
+	const formatted = relative.format(deltaDays, "days");
+	return formatted[0].toUpperCase() + formatted.slice(1);
 }
 
 /**
@@ -276,152 +275,152 @@ function relativeDate(str) {
  * @param {any} allPages
  */
 async function textToHtml(pageId, text, allPages) {
-  if (text.type === "text") {
-    const codeFriendly = text.text.content
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+	if (text.type === "text") {
+		const codeFriendly = text.text.content
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;");
 
-    /** @type {Set<string>} */ const emojiToLoad = new Set([]);
-    let content = emoji.replace(codeFriendly, ({ emoji }) => {
-      emojiToLoad.add(emoji);
-      return emoji;
-    });
+		/** @type {Set<string>} */ const emojiToLoad = new Set([]);
+		let content = emoji.replace(codeFriendly, ({ emoji }) => {
+			emojiToLoad.add(emoji);
+			return emoji;
+		});
 
-    await Promise.all(
-      [...emojiToLoad].map(async (emoji) => {
-        const filename = await saveEmojiFavicon(emoji);
-        // Hmmmm safe?
-        content = content.replace(
-          new RegExp(emoji, "ug"),
-          `<img class="emoji" alt="${emoji}" src="${filename}" />`
-        );
-      })
-    );
+		await Promise.all(
+			[...emojiToLoad].map(async (emoji) => {
+				const filename = await saveEmojiFavicon(emoji);
+				// Hmmmm safe?
+				content = content.replace(
+					new RegExp(emoji, "ug"),
+					`<img class="emoji" alt="${emoji}" src="${filename}" />`,
+				);
+			}),
+		);
 
-    if (text.annotations.bold) {
-      content = `<strong>${content}</strong>`;
-    }
-    if (text.annotations.italic) {
-      content = `<em>${content}</em>`;
-    }
-    if (text.annotations.underline) {
-      content = `<u>${content}</u>`;
-    }
-    if (text.annotations.strikethrough) {
-      content = `<strike>${content}</strike>`;
-    }
-    if (text.annotations.code) {
-      content = `<code>${content}</code>`;
-    }
+		if (text.annotations.bold) {
+			content = `<strong>${content}</strong>`;
+		}
+		if (text.annotations.italic) {
+			content = `<em>${content}</em>`;
+		}
+		if (text.annotations.underline) {
+			content = `<u>${content}</u>`;
+		}
+		if (text.annotations.strikethrough) {
+			content = `<strike>${content}</strike>`;
+		}
+		if (text.annotations.code) {
+			content = `<code>${content}</code>`;
+		}
 
-    if (text.text.link) {
-      // Links to other pages (not mentions), should also get back-linked
-      if (/^\//.test(text.text.link.url)) {
-        const id = text.text.link.url.slice(1);
-        // Hack: format into "c3d85220-62aa-457a-b414-90c5e9929790"
+		if (text.text.link) {
+			// Links to other pages (not mentions), should also get back-linked
+			if (/^\//.test(text.text.link.url)) {
+				const id = text.text.link.url.slice(1);
+				// Hack: format into "c3d85220-62aa-457a-b414-90c5e9929790"
 
-        const backlinkFriendlyId = addDashes(id);
+				const backlinkFriendlyId = addDashes(id);
 
-        registerBacklink(pageId, backlinkFriendlyId);
-        return linkOfId(allPages, backlinkFriendlyId, {
-          overwriteTitle: content,
-        });
-      } else {
-        // rel="me" for mastodon
-        return "https://mastodon.xyz/@jordan" === text.text.link.url
-          ? `<a rel="me" href="${text.text.link.url}">${content}</a>`
-          : `<a href="${text.text.link.url}">${content}</a>`;
-      }
-    } else {
-      return content;
-    }
-  } else if (text.type === "mention") {
-    if (text.mention.type === "page") {
-      registerBacklink(pageId, text.mention.page.id);
-      return linkOfId(allPages, text.mention.page.id);
-    } else if (text.mention.type === "date") {
-      const { start } = text.mention.date;
+				registerBacklink(pageId, backlinkFriendlyId);
+				return linkOfId(allPages, backlinkFriendlyId, {
+					overwriteTitle: content,
+				});
+			} else {
+				// rel="me" for mastodon
+				return "https://mastodon.xyz/@jordan" === text.text.link.url
+					? `<a rel="me" href="${text.text.link.url}">${content}</a>`
+					: `<a href="${text.text.link.url}">${content}</a>`;
+			}
+		} else {
+			return content;
+		}
+	} else if (text.type === "mention") {
+		if (text.mention.type === "page") {
+			registerBacklink(pageId, text.mention.page.id);
+			return linkOfId(allPages, text.mention.page.id);
+		} else if (text.mention.type === "date") {
+			const { start } = text.mention.date;
 
-      if (start && /^\d{4}-\d{2}-\d{2}$/.test(start)) {
-        return relativeDate(start);
-      } else if (start) {
-        const [date, time] = start.slice(0, 16).split("T");
+			if (start && /^\d{4}-\d{2}-\d{2}$/.test(start)) {
+				return relativeDate(start);
+			} else if (start) {
+				const [date, time] = start.slice(0, 16).split("T");
 
-        const options = /** @type {const} */ ({
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        });
-        const longDate = new Intl.DateTimeFormat("en-US", options).format(
-          new Date(date)
-        );
-        return `${longDate} – ${time}`;
-      }
-    } else if (text.mention.type === "template_mention") {
-      // Template mentions are a no-op
-      return "";
-    } else {
-      console.log(pageId, "Unrecognized mention --", text.mention);
-    }
-  } else if (text.type === "equation") {
-    return katex.renderToString(text.equation.expression, { strict: false });
-  } else {
-    console.log(pageId, "Unrecognized text --", text);
-  }
+				const options = /** @type {const} */ ({
+					month: "short",
+					day: "numeric",
+					year: "numeric",
+				});
+				const longDate = new Intl.DateTimeFormat("en-US", options).format(
+					new Date(date),
+				);
+				return `${longDate} – ${time}`;
+			}
+		} else if (text.mention.type === "template_mention") {
+			// Template mentions are a no-op
+			return "";
+		} else {
+			console.log(pageId, "Unrecognized mention --", text.mention);
+		}
+	} else if (text.type === "equation") {
+		return katex.renderToString(text.equation.expression, { strict: false });
+	} else {
+		console.log(pageId, "Unrecognized text --", text);
+	}
 }
 
 async function copyStaticAssets() {
-  const assets = [
-    path.join(__dirname, "public/style.css"),
-    path.join(__dirname, "public/me.png"),
-    path.join(__dirname, "public/serve.json"),
-    path.join(__dirname, "node_modules/prismjs/themes/prism-coy.css"),
-    path.join(__dirname, "node_modules/prismjs/themes/prism-tomorrow.css"),
-    path.join(__dirname, "node_modules/katex/dist/katex.min.css"),
-    path.join(
-      __dirname,
-      "node_modules/katex/dist/fonts/KaTeX_Math-Italic.woff2"
-    ),
-    path.join(
-      __dirname,
-      "node_modules/katex/dist/fonts/KaTeX_Main-Regular.woff2"
-    ),
-    path.join(
-      __dirname,
-      "node_modules/katex/dist/fonts/KaTeX_Size4-Regular.woff2"
-    ),
-    path.join(
-      __dirname,
-      "node_modules/katex/dist/fonts/KaTeX_Math-Italic.woff"
-    ),
-    path.join(
-      __dirname,
-      "node_modules/katex/dist/fonts/KaTeX_Main-Regular.woff"
-    ),
-    path.join(
-      __dirname,
-      "node_modules/katex/dist/fonts/KaTeX_Size4-Regular.woff"
-    ),
-    path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Math-Italic.ttf"),
-    path.join(
-      __dirname,
-      "node_modules/katex/dist/fonts/KaTeX_Main-Regular.ttf"
-    ),
-    path.join(
-      __dirname,
-      "node_modules/katex/dist/fonts/KaTeX_Size4-Regular.ttf"
-    ),
-    path.join(__dirname, "node_modules/react/umd/react.production.min.js"),
-    path.join(
-      __dirname,
-      "node_modules/react-dom/umd/react-dom.production.min.js"
-    ),
-  ];
-  return Promise.all(
-    assets.map(async (asset) =>
-      fsPromises.copyFile(asset, settings.output(path.basename(asset)))
-    )
-  );
+	const assets = [
+		path.join(__dirname, "public/style.css"),
+		path.join(__dirname, "public/me.png"),
+		path.join(__dirname, "public/serve.json"),
+		path.join(__dirname, "node_modules/prismjs/themes/prism-coy.css"),
+		path.join(__dirname, "node_modules/prismjs/themes/prism-tomorrow.css"),
+		path.join(__dirname, "node_modules/katex/dist/katex.min.css"),
+		path.join(
+			__dirname,
+			"node_modules/katex/dist/fonts/KaTeX_Math-Italic.woff2",
+		),
+		path.join(
+			__dirname,
+			"node_modules/katex/dist/fonts/KaTeX_Main-Regular.woff2",
+		),
+		path.join(
+			__dirname,
+			"node_modules/katex/dist/fonts/KaTeX_Size4-Regular.woff2",
+		),
+		path.join(
+			__dirname,
+			"node_modules/katex/dist/fonts/KaTeX_Math-Italic.woff",
+		),
+		path.join(
+			__dirname,
+			"node_modules/katex/dist/fonts/KaTeX_Main-Regular.woff",
+		),
+		path.join(
+			__dirname,
+			"node_modules/katex/dist/fonts/KaTeX_Size4-Regular.woff",
+		),
+		path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Math-Italic.ttf"),
+		path.join(
+			__dirname,
+			"node_modules/katex/dist/fonts/KaTeX_Main-Regular.ttf",
+		),
+		path.join(
+			__dirname,
+			"node_modules/katex/dist/fonts/KaTeX_Size4-Regular.ttf",
+		),
+		path.join(__dirname, "node_modules/react/umd/react.production.min.js"),
+		path.join(
+			__dirname,
+			"node_modules/react-dom/umd/react-dom.production.min.js",
+		),
+	];
+	return Promise.all(
+		assets.map(async (asset) =>
+			fsPromises.copyFile(asset, settings.output(path.basename(asset))),
+		),
+	);
 }
 
 /**
@@ -432,20 +431,20 @@ async function copyStaticAssets() {
  * @returns
  */
 const linkOfId = (allPages, id, args = {}) => {
-  const page = allPages.find((entry) => entry.id === id);
-  if (page) {
-    return `<a href="${settings.url(page.filename)}"${
-      page.favicon ? ` class="with-emoji"` : ""
-    }>
+	const page = allPages.find((entry) => entry.id === id);
+	if (page) {
+		return `<a href="${settings.url(page.filename)}"${
+			page.favicon ? ` class="with-emoji"` : ""
+		}>
       ${
-        page.favicon
-          ? `<img class="emoji" alt="" src="${settings.url(page.favicon)}">`
-          : ""
-      }
+				page.favicon
+					? `<img class="emoji" alt="" src="${settings.url(page.favicon)}">`
+					: ""
+			}
       ${args.overwriteTitle || page.title}</a>`;
-  } else {
-    return `[${id}]`;
-  }
+	} else {
+		return `[${id}]`;
+	}
 };
 
 /**
@@ -456,45 +455,45 @@ const linkOfId = (allPages, id, args = {}) => {
  * @param {Feed} feed
  */
 async function savePage(
-  {
-    id,
-    title,
-    created,
-    favicon,
-    headingIcon,
-    content,
-    filename,
-    publishToRss,
-    ogImage,
-  },
-  backlinks,
-  allPages,
-  feed
+	{
+		id,
+		title,
+		created,
+		favicon,
+		headingIcon,
+		content,
+		filename,
+		publishToRss,
+		ogImage,
+	},
+	backlinks,
+	allPages,
+	feed,
 ) {
-  const icon = favicon || (await saveEmojiFavicon("💡"));
+	const icon = favicon || (await saveEmojiFavicon("💡"));
 
-  const footer = backlinks[id]
-    ? `<footer><label>mentioned in</label><ul>${backlinks[id]
-        .sort()
-        .map((id) => `<li>${linkOfId(allPages, id)}</li>`)
-        .join("\n")}</ul></footer>`
-    : "";
+	const footer = backlinks[id]
+		? `<footer><label>mentioned in</label><ul>${backlinks[id]
+				.sort()
+				.map((id) => `<li>${linkOfId(allPages, id)}</li>`)
+				.join("\n")}</ul></footer>`
+		: "";
 
-  const script = await fsPromises.readFile(
-    path.join(__dirname, "public/script.js")
-  );
+	const script = await fsPromises.readFile(
+		path.join(__dirname, "public/script.js"),
+	);
 
-  const metaImage = ogImage ? settings.url(ogImage) : settings.ogImage;
-  const twitterCard = ogImage ? "summary_large_image" : "summary";
+	const metaImage = ogImage ? settings.url(ogImage) : settings.ogImage;
+	const twitterCard = ogImage ? "summary_large_image" : "summary";
 
-  const body = `
+	const body = `
     <!doctype html>
     <html lang="en">
     <head>
       <title>${title}</title>
       <link rel="Shortcut Icon" type="image/x-icon" href="${settings.url(
-        icon
-      )}" />
+				icon,
+			)}" />
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -510,8 +509,8 @@ async function savePage(
       <link rel="stylesheet" href="${settings.url("style.css")}">
       <link rel="preload" href="${settings.url("prism-coy.css")}" as="style">
       <link rel="preload" href="${settings.url(
-        "prism-tomorrow.css"
-      )}" as="style">
+				"prism-tomorrow.css",
+			)}" as="style">
       <link id="prism" rel="stylesheet" href="${settings.url("prism-coy.css")}">
       <link rel="stylesheet" href=${settings.url("katex.min.css")}>
     </head>
@@ -523,13 +522,13 @@ async function savePage(
           <button id="toggle-btn" aria-label="enable dark theme">🌙</button>
         </header>
         ${
-          headingIcon
-            ? `<div class="title-row">
+					headingIcon
+						? `<div class="title-row">
                 ${headingIcon}
                 <h1>${title}</h1>
               </div>`
-            : `<h1>${title}</h1>`
-        }
+						: `<h1>${title}</h1>`
+				}
         ${content}
         ${footer}
       </main>
@@ -537,25 +536,25 @@ async function savePage(
     </body>
     </html>
   `;
-  await fsPromises.writeFile(settings.output(filename), body);
+	await fsPromises.writeFile(settings.output(filename), body);
 
-  if (publishToRss) {
-    feed.addItem({
-      title,
-      id: settings.url(filename),
-      link: settings.url(filename),
-      content: body,
-      author: [
-        {
-          name: "Jordan Scales",
-          email: "me@jordanscales.com",
-          link: "https://jordanscales.com",
-        },
-      ],
-      date: new Date(created),
-      image: metaImage,
-    });
-  }
+	if (publishToRss) {
+		feed.addItem({
+			title,
+			id: settings.url(filename),
+			link: settings.url(filename),
+			content: body,
+			author: [
+				{
+					name: "Jordan Scales",
+					email: "me@jordanscales.com",
+					link: "https://jordanscales.com",
+				},
+			],
+			date: new Date(created),
+			image: metaImage,
+		});
+	}
 }
 
 /**
@@ -564,31 +563,31 @@ async function savePage(
  * @returns Promise<string | undefined>
  */
 async function downloadImage(url, filenamePrefix) {
-  const files = await fsPromises.readdir(settings.outputDir);
-  let filename = files.find((name) => name.startsWith(filenamePrefix));
+	const files = await fsPromises.readdir(settings.outputDir);
+	let filename = files.find((name) => name.startsWith(filenamePrefix));
 
-  if (!filename) {
-    return new Promise((resolve) => {
-      https.get(url, (res) => {
-        const ext = mimeTypes.extension(
-          res.headers["content-type"] || "image/png"
-        );
-        const dest = `${filenamePrefix}.${ext}`;
-        const destStream = fs.createWriteStream(settings.output(dest));
-        res
-          .pipe(destStream)
-          .on("finish", () => {
-            resolve(dest);
-          })
-          .on("error", () => {
-            console.log("Image failed to write", dest);
-            resolve(undefined);
-          });
-      });
-    });
-  } else {
-    return filename;
-  }
+	if (!filename) {
+		return new Promise((resolve) => {
+			https.get(url, (res) => {
+				const ext = mimeTypes.extension(
+					res.headers["content-type"] || "image/png",
+				);
+				const dest = `${filenamePrefix}.${ext}`;
+				const destStream = fs.createWriteStream(settings.output(dest));
+				res
+					.pipe(destStream)
+					.on("finish", () => {
+						resolve(dest);
+					})
+					.on("error", () => {
+						console.log("Image failed to write", dest);
+						resolve(undefined);
+					});
+			});
+		});
+	} else {
+		return filename;
+	}
 }
 
 /**
@@ -598,24 +597,24 @@ async function downloadImage(url, filenamePrefix) {
  * @returns Promise<string | undefined>
  */
 async function downloadImageBlock(block, blockId) {
-  const filename = await downloadImage(
-    block.image.type === "file"
-      ? block.image.file.url
-      : block.image.external.url,
-    `${block.id}.image`
-  );
+	const filename = await downloadImage(
+		block.image.type === "file"
+			? block.image.file.url
+			: block.image.external.url,
+		`${block.id}.image`,
+	);
 
-  if (!filename) {
-    return;
-  }
+	if (!filename) {
+		return;
+	}
 
-  const caption = concatenateText(block.image.caption);
-  const html = `<figure id="${blockId}">
+	const caption = concatenateText(block.image.caption);
+	const html = `<figure id="${blockId}">
       <img alt="${caption}" src="${settings.url(filename)}">
       <figcaption>${caption}</figcaption>
     </figure>`;
 
-  return html;
+	return html;
 }
 
 /**
@@ -626,201 +625,201 @@ async function downloadImageBlock(block, blockId) {
  * @returns {Promise<string | undefined>}
  */
 async function blockToHtml(block, pageId, allPages) {
-  /**
-   * @param {RichText[]} texts
-   * @returns
-   */
-  if (pageId === DEBUG) {
-    console.log("[DEBUG]", block.type, block.id);
-  }
+	/**
+	 * @param {RichText[]} texts
+	 * @returns
+	 */
+	if (pageId === DEBUG) {
+		console.log("[DEBUG]", block.type, block.id);
+	}
 
-  const textToHtml_ = async (texts) => {
-    const converts = await Promise.all(
-      texts.map((text) => textToHtml(pageId, text, allPages))
-    );
-    return converts.join("");
-  };
-  const blockId = "b" + block.id.replace(/-/g, "").slice(0, 8);
-  const children = await Promise.all(
-    block.children.map((block) => blockToHtml(block, pageId, allPages))
-  );
+	const textToHtml_ = async (texts) => {
+		const converts = await Promise.all(
+			texts.map((text) => textToHtml(pageId, text, allPages)),
+		);
+		return converts.join("");
+	};
+	const blockId = "b" + block.id.replace(/-/g, "").slice(0, 8);
+	const children = await Promise.all(
+		block.children.map((block) => blockToHtml(block, pageId, allPages)),
+	);
 
-  if (block.type === "bulleted_list") {
-    return `<ul id="${blockId}">${children.join("\n")}</ul>`;
-  } else if (block.type === "numbered_list") {
-    return `<ol id="${blockId}">${children.join("\n")}</ol>`;
-  } else if (block.type === "bulleted_list_item") {
-    return `<li id="${blockId}">
+	if (block.type === "bulleted_list") {
+		return `<ul id="${blockId}">${children.join("\n")}</ul>`;
+	} else if (block.type === "numbered_list") {
+		return `<ol id="${blockId}">${children.join("\n")}</ol>`;
+	} else if (block.type === "bulleted_list_item") {
+		return `<li id="${blockId}">
       <div class="list-item">
         ${await textToHtml_(block.bulleted_list_item.text)}
       </div>
       ${children.join("\n")}
     </li>`;
-  } else if (block.type === "numbered_list_item") {
-    return `<li id="${blockId}">
+	} else if (block.type === "numbered_list_item") {
+		return `<li id="${blockId}">
       <div class="list-item">
         ${await textToHtml_(block.numbered_list_item.text)}
       </div>
       ${children.join("\n")}
     </li>`;
-  } else if (block.type === "paragraph") {
-    return `<div class="text" id="${blockId}">
+	} else if (block.type === "paragraph") {
+		return `<div class="text" id="${blockId}">
       ${await textToHtml_(block.paragraph.text)}
       <div class="children">${children.join("\n")}</div>
     </div>`;
-  } else if (block.type === "heading_1") {
-    const text = await textToHtml_(block.heading_1.text);
-    const id = sluggify(text);
+	} else if (block.type === "heading_1") {
+		const text = await textToHtml_(block.heading_1.text);
+		const id = sluggify(text);
 
-    return `<h1 id="${id}">
+		return `<h1 id="${id}">
       <a href="#${id}" class="link">🔗</a>
       ${text}
     </h1>`;
-  } else if (block.type === "heading_2") {
-    const text = await textToHtml_(block.heading_2.text);
-    const id = sluggify(text);
+	} else if (block.type === "heading_2") {
+		const text = await textToHtml_(block.heading_2.text);
+		const id = sluggify(text);
 
-    return `<h2 id="${id}">
+		return `<h2 id="${id}">
       <a href="#${id}" class="link">🔗</a>
       ${text}
     </h2>`;
-  } else if (block.type === "heading_3") {
-    const text = await textToHtml_(block.heading_3.text);
-    const id = sluggify(text);
+	} else if (block.type === "heading_3") {
+		const text = await textToHtml_(block.heading_3.text);
+		const id = sluggify(text);
 
-    return `<h3 id="${id}">
+		return `<h3 id="${id}">
       <a href="#${id}" class="link">🔗</a>
       ${text}
     </h3>`;
-  } else if (block.type === "toggle") {
-    // Toggles that start with !hide don't render as a summary
-    // and just display their contents
-    const toggleText = concatenateText(block.toggle.text);
-    if (/^!hide/.test(toggleText)) {
-      return children.join("\n");
-    }
+	} else if (block.type === "toggle") {
+		// Toggles that start with !hide don't render as a summary
+		// and just display their contents
+		const toggleText = concatenateText(block.toggle.text);
+		if (/^!hide/.test(toggleText)) {
+			return children.join("\n");
+		}
 
-    return `<details id="${blockId}"><summary>${await textToHtml_(
-      block.toggle.text
-    )}</summary>${children.join("\n")}</details>`;
-  } else if (block.type === "code") {
-    const isPreview = /preview=true/.test(concatenateText(block.code.caption));
-    if (isPreview) {
-      return await renderPreview(pageId, block);
-    }
+		return `<details id="${blockId}"><summary>${await textToHtml_(
+			block.toggle.text,
+		)}</summary>${children.join("\n")}</details>`;
+	} else if (block.type === "code") {
+		const isPreview = /preview=true/.test(concatenateText(block.code.caption));
+		if (isPreview) {
+			return await renderPreview(pageId, block);
+		}
 
-    const hasCustomLanguage =
-      block.code.language === "plain text" &&
-      /^lang=/.test(concatenateText(block.code.caption));
+		const hasCustomLanguage =
+			block.code.language === "plain text" &&
+			/^lang=/.test(concatenateText(block.code.caption));
 
-    const language = hasCustomLanguage
-      ? concatenateText(block.code.caption).slice("lang=".length)
-      : block.code.language.toLowerCase();
-    if (language !== "plain text" && !Prism.languages[language]) {
-      console.log(pageId, "Unrecognized language --", language);
-    }
-    const code = Prism.languages[language]
-      ? Prism.highlight(
-          concatenateText(block.code.text),
-          Prism.languages[language],
-          language
-        )
-      : concatenateText(block.code.text);
-    return `<pre id="${blockId}"><code class="language-${language.replace(
-      /\s/g,
-      "-"
-    )}">${code}</code></pre>`;
-  } else if (block.type === "equation") {
-    return katex.renderToString(block.equation.expression, {
-      displayMode: true,
-      strict: false,
-    });
-  } else if (block.type === "image") {
-    if (block.image.type === "file") {
-      return downloadImageBlock(block, blockId);
-    } else if (block.image.type === "external") {
-      const caption = concatenateText(block.image.caption);
-      return `<figure id="${blockId}">
+		const language = hasCustomLanguage
+			? concatenateText(block.code.caption).slice("lang=".length)
+			: block.code.language.toLowerCase();
+		if (language !== "plain text" && !Prism.languages[language]) {
+			console.log(pageId, "Unrecognized language --", language);
+		}
+		const code = Prism.languages[language]
+			? Prism.highlight(
+					concatenateText(block.code.text),
+					Prism.languages[language],
+					language,
+				)
+			: concatenateText(block.code.text);
+		return `<pre id="${blockId}"><code class="language-${language.replace(
+			/\s/g,
+			"-",
+		)}">${code}</code></pre>`;
+	} else if (block.type === "equation") {
+		return katex.renderToString(block.equation.expression, {
+			displayMode: true,
+			strict: false,
+		});
+	} else if (block.type === "image") {
+		if (block.image.type === "file") {
+			return downloadImageBlock(block, blockId);
+		} else if (block.image.type === "external") {
+			const caption = concatenateText(block.image.caption);
+			return `<figure id="${blockId}">
         <img alt="${caption}" src="${block.image.external.url}">
         <figcaption>${caption}</figcaption>
       </figure>`;
-    } else {
-      console.log(pageId, "Unrecognized image", block);
-    }
-  } else if (block.type === "to_do") {
-    return `<div><label>
+		} else {
+			console.log(pageId, "Unrecognized image", block);
+		}
+	} else if (block.type === "to_do") {
+		return `<div><label>
       <input type="checkbox" onclick="return false" ${
-        block.to_do.checked ? "checked" : ""
-      }>
+				block.to_do.checked ? "checked" : ""
+			}>
       ${await textToHtml_(block.to_do.text)}
     </label></div>`;
-  } else if (block.type === "quote") {
-    return `<blockquote>
+	} else if (block.type === "quote") {
+		return `<blockquote>
       <p>${await textToHtml_(block.quote.text)}</p>
       ${children.join("\n")}
     </blockquote>`;
-  } else if (block.type === "divider") {
-    return "<hr />";
-  } else if (block.type === "unsupported") {
-    return "[unsupported]";
-  } else if (block.type === "synced_block") {
-    // TODO: synced_from instead of children: []
-    // not sure what the difference is
-    return children.join("\n");
-  } else if (block.type === "template") {
-    // templates are using in pages, but no-ops when rendering
-    return "";
-  } else if (block.type === "embed") {
-    const prefix = "https://www.val.town/v/";
-    if (block.embed.url.startsWith(prefix)) {
-      // extract an id
-      // https://www.val.town/v/jdan.coupleHoldingHands -> jdan.coupleHoldingHands
-      const id = block.embed.url.slice(prefix.length);
-      return `<iframe src="https://www.val.town/embed/${id}" frameborder="0" allowfullscreen style="width: 100%; height: 400px"></iframe>`;
-    } else {
-      console.log(pageId, "Unrecognized embed --", block.embed.url);
-    }
-  } else if (block.type === "video") {
-    const prefix = "https://www.youtube.com/watch?v=";
-    if (
-      block.video.type === "external" &&
-      block.video.external.url.startsWith(prefix)
-    ) {
-      const id = block.video.external.url.slice(prefix.length);
-      return `<iframe width="100%" height="400" src="https://www.youtube.com/embed/${id}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-    } else {
-      console.log(pageId, "Unrecognized video --", block.video);
-    }
-  } else {
-    console.log(pageId, "Unrecognized block --", block.type);
-  }
+	} else if (block.type === "divider") {
+		return "<hr />";
+	} else if (block.type === "unsupported") {
+		return "[unsupported]";
+	} else if (block.type === "synced_block") {
+		// TODO: synced_from instead of children: []
+		// not sure what the difference is
+		return children.join("\n");
+	} else if (block.type === "template") {
+		// templates are using in pages, but no-ops when rendering
+		return "";
+	} else if (block.type === "embed") {
+		const prefix = "https://www.val.town/v/";
+		if (block.embed.url.startsWith(prefix)) {
+			// extract an id
+			// https://www.val.town/v/jdan.coupleHoldingHands -> jdan.coupleHoldingHands
+			const id = block.embed.url.slice(prefix.length);
+			return `<iframe src="https://www.val.town/embed/${id}" frameborder="0" allowfullscreen style="width: 100%; height: 400px"></iframe>`;
+		} else {
+			console.log(pageId, "Unrecognized embed --", block.embed.url);
+		}
+	} else if (block.type === "video") {
+		const prefix = "https://www.youtube.com/watch?v=";
+		if (
+			block.video.type === "external" &&
+			block.video.external.url.startsWith(prefix)
+		) {
+			const id = block.video.external.url.slice(prefix.length);
+			return `<iframe width="100%" height="400" src="https://www.youtube.com/embed/${id}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+		} else {
+			console.log(pageId, "Unrecognized video --", block.video);
+		}
+	} else {
+		console.log(pageId, "Unrecognized block --", block.type);
+	}
 }
 
 async function renderPreview(pageId, block) {
-  const code = concatenateText(block.code.text);
-  const language = block.code.language.toLowerCase();
+	const code = concatenateText(block.code.text);
+	const language = block.code.language.toLowerCase();
 
-  if (language === "html") {
-    return code;
-  } else if (language === "javascript") {
-    return `
+	if (language === "html") {
+		return code;
+	} else if (language === "javascript") {
+		return `
       <script>${code}</script>
     `;
-  } else if (language === "typescript") {
-    const result = ts.transpileModule(code, {
-      compilerOptions: {
-        target: ts.ScriptTarget.ES2015,
-        // module: ts.ModuleKind.ES2015,
-        jsx: ts.JsxEmit.React,
-        jsxFactory: "React.createElement",
-      },
-    });
-    return `
+	} else if (language === "typescript") {
+		const result = ts.transpileModule(code, {
+			compilerOptions: {
+				target: ts.ScriptTarget.ES2015,
+				// module: ts.ModuleKind.ES2015,
+				jsx: ts.JsxEmit.React,
+				jsxFactory: "React.createElement",
+			},
+		});
+		return `
       <script>${result.outputText}</script>
     `;
-  } else {
-    console.log(pageId, "Unrecognized preview language --", language);
-  }
+	} else {
+		console.log(pageId, "Unrecognized preview language --", language);
+	}
 }
 
 /**
@@ -835,68 +834,68 @@ async function renderPreview(pageId, block) {
  * @returns {CardBlock[]}
  */
 function groupAdjacentBlocksRecursively(blocks, type, result_type) {
-  /** @typedef {BlockGroup<BlockType, GroupType>} ResultGroup */
-  /** @typedef {ResultGroup["children"][number]} BlockToGroup */
-  /** @type {CardBlock[]} */ let result = [];
-  /** @type {BlockToGroup[]} */ let currentList = [];
-  const blocksAsCardBlocks = /** @type {CardBlock[]} */ (blocks);
+	/** @typedef {BlockGroup<BlockType, GroupType>} ResultGroup */
+	/** @typedef {ResultGroup["children"][number]} BlockToGroup */
+	/** @type {CardBlock[]} */ let result = [];
+	/** @type {BlockToGroup[]} */ let currentList = [];
+	const blocksAsCardBlocks = /** @type {CardBlock[]} */ (blocks);
 
-  blocks.forEach((block, i) => {
-    if (block.has_children) {
-      // Recursively apply grouping to each block's children.
-      blocksAsCardBlocks[i].children = groupAdjacentBlocksRecursively(
-        block.children,
-        type,
-        result_type
-      );
-    }
+	blocks.forEach((block, i) => {
+		if (block.has_children) {
+			// Recursively apply grouping to each block's children.
+			blocksAsCardBlocks[i].children = groupAdjacentBlocksRecursively(
+				block.children,
+				type,
+				result_type,
+			);
+		}
 
-    if (block.type === type) {
-      // This kind of generic type constraint is impossible to express in TS
-      // since there's no way to declare that { type: XXXX } is a discriminated
-      // union (it could always be declared as `string`).
-      // See https://stackoverflow.com/questions/50870423/discriminated-union-of-generic-type
-      currentList.push(/** @type {BlockToGroup} */ (block));
-    } else {
-      if (currentList.length) {
-        /** @type {ResultGroup} */ const group = {
-          id: "p-" + currentList[0].id,
-          has_children: true,
-          type: result_type,
-          children: currentList,
-        };
-        result.push(/** @type {CardBlock} */ (group));
-        currentList = [];
-      }
+		if (block.type === type) {
+			// This kind of generic type constraint is impossible to express in TS
+			// since there's no way to declare that { type: XXXX } is a discriminated
+			// union (it could always be declared as `string`).
+			// See https://stackoverflow.com/questions/50870423/discriminated-union-of-generic-type
+			currentList.push(/** @type {BlockToGroup} */ (block));
+		} else {
+			if (currentList.length) {
+				/** @type {ResultGroup} */ const group = {
+					id: "p-" + currentList[0].id,
+					has_children: true,
+					type: result_type,
+					children: currentList,
+				};
+				result.push(/** @type {CardBlock} */ (group));
+				currentList = [];
+			}
 
-      result.push(blocksAsCardBlocks[i]);
-    }
-  });
+			result.push(blocksAsCardBlocks[i]);
+		}
+	});
 
-  if (currentList.length) {
-    /** @type {ResultGroup} */ const group = {
-      id: "p-" + currentList[0].id,
-      has_children: true,
-      type: result_type,
-      children: currentList,
-    };
-    result.push(/** @type {CardBlock} */ (group));
-  }
+	if (currentList.length) {
+		/** @type {ResultGroup} */ const group = {
+			id: "p-" + currentList[0].id,
+			has_children: true,
+			type: result_type,
+			children: currentList,
+		};
+		result.push(/** @type {CardBlock} */ (group));
+	}
 
-  return result;
+	return result;
 }
 
 /** @type {Record<string, string[]>} */
 const backlinks = {};
 const registerBacklink = (
-  /** @type {string} */ sourceId,
-  /** @type {string} */ destinationId
+	/** @type {string} */ sourceId,
+	/** @type {string} */ destinationId,
 ) => {
-  if (backlinks[destinationId]) {
-    backlinks[destinationId].push(sourceId);
-  } else {
-    backlinks[destinationId] = [sourceId];
-  }
+	if (backlinks[destinationId]) {
+		backlinks[destinationId].push(sourceId);
+	} else {
+		backlinks[destinationId] = [sourceId];
+	}
 };
 
 /**
@@ -904,21 +903,21 @@ const registerBacklink = (
  * @param {string} id Notion page ID
  */
 async function getAllChildBlocks(notion, id) {
-  const blocks = [];
+	const blocks = [];
 
-  let next_cursor = undefined;
-  let has_more = true;
-  /** @type {Array<GetBlockResponse>} */ let results;
+	let next_cursor = undefined;
+	let has_more = true;
+	/** @type {Array<GetBlockResponse>} */ let results;
 
-  while (has_more) {
-    ({ results, has_more, next_cursor } = await notion.blocks.children.list({
-      block_id: id,
-      start_cursor: next_cursor || undefined,
-    }));
-    blocks.push(...results);
-  }
+	while (has_more) {
+		({ results, has_more, next_cursor } = await notion.blocks.children.list({
+			block_id: id,
+			start_cursor: next_cursor || undefined,
+		}));
+		blocks.push(...results);
+	}
 
-  return blocks;
+	return blocks;
 }
 
 /**
@@ -928,19 +927,19 @@ async function getAllChildBlocks(notion, id) {
  * @returns
  */
 async function getChildren(notion, id) {
-  const blocks = /** @type {RecursiveTree<Block>[]} */ (
-    await getAllChildBlocks(notion, id)
-  );
-  return Promise.all(
-    blocks.map(async (block) => {
-      if (block.has_children) {
-        block.children = await getChildren(notion, block.id);
-      } else {
-        block.children = [];
-      }
-      return block;
-    })
-  );
+	const blocks = /** @type {RecursiveTree<Block>[]} */ (
+		await getAllChildBlocks(notion, id)
+	);
+	return Promise.all(
+		blocks.map(async (block) => {
+			if (block.has_children) {
+				block.children = await getChildren(notion, block.id);
+			} else {
+				block.children = [];
+			}
+			return block;
+		}),
+	);
 }
 
 /**
@@ -949,11 +948,11 @@ async function getChildren(notion, id) {
  * @returns Promise<string>
  */
 async function saveFavicon(pageId, icon) {
-  if (icon && icon.type === "file") {
-    return await downloadImage(icon.file.url, `${pageId}.icon`);
-  } else if (icon && icon.type === "emoji") {
-    return await saveEmojiFavicon(icon.emoji);
-  }
+	if (icon && icon.type === "file") {
+		return await downloadImage(icon.file.url, `${pageId}.icon`);
+	} else if (icon && icon.type === "emoji") {
+		return await saveEmojiFavicon(icon.emoji);
+	}
 }
 
 /**
@@ -961,164 +960,164 @@ async function saveFavicon(pageId, icon) {
  * @returns Promise<string>
  */
 async function saveEmojiFavicon(emoji) {
-  const codepoints = emojiUnicode(emoji).split(" ").join("-");
-  const basename =
-    // TODO: unsure why we're looking for 31-, or why emoji-datasource has 0031-
-    codepoints === "31-fe0f-20e3" ? "0031-fe0f-20e3.png" : `${codepoints}.png`;
-  const filename = path.join(
-    __dirname,
-    "node_modules/emoji-datasource-apple/img/apple/64",
-    basename
-  );
-  if (!fs.existsSync(filename)) {
-    console.log("Unknown emoji --", emoji, codepoints);
-  }
-  const dest = settings.output(basename);
-  if (!fs.existsSync(dest)) {
-    await fsPromises.copyFile(filename, dest);
-  }
-  return basename;
+	const codepoints = emojiUnicode(emoji).split(" ").join("-");
+	const basename =
+		// TODO: unsure why we're looking for 31-, or why emoji-datasource has 0031-
+		codepoints === "31-fe0f-20e3" ? "0031-fe0f-20e3.png" : `${codepoints}.png`;
+	const filename = path.join(
+		__dirname,
+		"node_modules/emoji-datasource-apple/img/apple/64",
+		basename,
+	);
+	if (!fs.existsSync(filename)) {
+		console.log("Unknown emoji --", emoji, codepoints);
+	}
+	const dest = settings.output(basename);
+	if (!fs.existsSync(dest)) {
+		await fsPromises.copyFile(filename, dest);
+	}
+	return basename;
 }
 
 const main = async function main() {
-  console.log("\n\n", new Date(), "\n", settings.info());
+	console.log("\n\n", new Date(), "\n", settings.info());
 
-  /** @type {CardPage[]} */ const pages = [];
+	/** @type {CardPage[]} */ const pages = [];
 
-  // Make sure settings.outputDir exists
-  if (!fs.existsSync(settings.outputDir)) {
-    await fsPromises.mkdir(settings.outputDir, { recursive: true });
-  }
+	// Make sure settings.outputDir exists
+	if (!fs.existsSync(settings.outputDir)) {
+		await fsPromises.mkdir(settings.outputDir, { recursive: true });
+	}
 
-  // Load all the pages
-  await forEachRow(
-    {
-      token: settings.notionSecret,
-      database: settings.notionDatabaseId,
-    },
-    async (page, notion) => {
-      const { id, created_time, last_edited_time, icon, properties } = page;
-      if (DEBUG && id !== DEBUG) {
-        return;
-      }
+	// Load all the pages
+	await forEachRow(
+		{
+			token: settings.notionSecret,
+			database: settings.notionDatabaseId,
+		},
+		async (page, notion) => {
+			const { id, created_time, last_edited_time, icon, properties } = page;
+			if (DEBUG && id !== DEBUG) {
+				return;
+			}
 
-      let existingPage = await Page.findByPk(id);
-      const existingPageHasUpdates =
-        new Date(last_edited_time).getTime() >
-        new Date(existingPage?.updatedAt).getTime();
+			let existingPage = await Page.findByPk(id);
+			const existingPageHasUpdates =
+				new Date(last_edited_time).getTime() >
+				new Date(existingPage?.updatedAt).getTime();
 
-      if (DEBUG || !existingPage || existingPageHasUpdates) {
-        existingPage =
-          existingPage ||
-          Page.build({
-            id,
-            createdAt: created_time,
-          });
+			if (DEBUG || !existingPage || existingPageHasUpdates) {
+				existingPage =
+					existingPage ||
+					Page.build({
+						id,
+						createdAt: created_time,
+					});
 
-        const title = concatenateText(properties.Name.title);
-        const children = await getChildren(notion, id);
-        const favicon = await saveFavicon(id, icon);
+				const title = concatenateText(properties.Name.title);
+				const children = await getChildren(notion, id);
+				const favicon = await saveFavicon(id, icon);
 
-        // headingIcon is generated here so it can have the
-        // emoji character as its alt text.
-        //
-        // Probably better to just send the emoji down.
-        const headingIcon = icon
-          ? `<img width="32" height="32" alt="${
-              icon.type === "emoji" ? icon.emoji : ""
-            }" src="${settings.url(favicon)}" />`
-          : null;
+				// headingIcon is generated here so it can have the
+				// emoji character as its alt text.
+				//
+				// Probably better to just send the emoji down.
+				const headingIcon = icon
+					? `<img width="32" height="32" alt="${
+							icon.type === "emoji" ? icon.emoji : ""
+						}" src="${settings.url(favicon)}" />`
+					: null;
 
-        const filename =
-          (properties.Filename
-            ? concatenateText(properties.Filename.rich_text)
-            : "") || `${id.replace(/-/g, "").slice(0, 8)}.html`;
+				const filename =
+					(properties.Filename
+						? concatenateText(properties.Filename.rich_text)
+						: "") || `${id.replace(/-/g, "").slice(0, 8)}.html`;
 
-        const ogImage = properties["og:image"].files[0]
-          ? await downloadImage(
-              properties["og:image"].files[0].file.url,
-              `${id}.ogImage`
-            )
-          : null;
+				const ogImage = properties["og:image"].files[0]
+					? await downloadImage(
+							properties["og:image"].files[0].file.url,
+							`${id}.ogImage`,
+						)
+					: null;
 
-        const publishToRss = properties["Publish to RSS"].checkbox;
+				const publishToRss = properties["Publish to RSS"].checkbox;
 
-        const blocks = groupAdjacentBlocksRecursively(
-          groupAdjacentBlocksRecursively(
-            children,
-            "numbered_list_item",
-            "numbered_list"
-          ),
-          "bulleted_list_item",
-          "bulleted_list"
-        );
+				const blocks = groupAdjacentBlocksRecursively(
+					groupAdjacentBlocksRecursively(
+						children,
+						"numbered_list_item",
+						"numbered_list",
+					),
+					"bulleted_list_item",
+					"bulleted_list",
+				);
 
-        const pageInstance = {
-          id,
-          headingIcon,
-          favicon,
-          title,
-          blocks,
-          filename,
-          ogImage,
-          created: created_time,
-          publishToRss,
-        };
+				const pageInstance = {
+					id,
+					headingIcon,
+					favicon,
+					title,
+					blocks,
+					filename,
+					ogImage,
+					created: created_time,
+					publishToRss,
+				};
 
-        pages.push(pageInstance);
-        existingPage.body = JSON.stringify(pageInstance);
+				pages.push(pageInstance);
+				existingPage.body = JSON.stringify(pageInstance);
 
-        console.log("Updating page", id);
-        await existingPage.save();
-      } else {
-        // Use the cached page
-        pages.push(JSON.parse(existingPage.body));
-      }
-    }
-  );
+				console.log("Updating page", id);
+				await existingPage.save();
+			} else {
+				// Use the cached page
+				pages.push(JSON.parse(existingPage.body));
+			}
+		},
+	);
 
-  await Promise.all(
-    pages.map(async (page) => {
-      const renderedBlocks = await Promise.all(
-        page.blocks.map(async (block) => blockToHtml(block, page.id, pages))
-      );
-      page.content = renderedBlocks.join("");
-    })
-  );
+	await Promise.all(
+		pages.map(async (page) => {
+			const renderedBlocks = await Promise.all(
+				page.blocks.map(async (block) => blockToHtml(block, page.id, pages)),
+			);
+			page.content = renderedBlocks.join("");
+		}),
+	);
 
-  const favicon = await saveEmojiFavicon("👋");
-  const feed = new Feed({
-    title: "notes.jordanscales.com",
-    description: "Jordan's working notes",
-    id: settings.url("/"),
-    link: settings.url(""),
-    language: "en",
-    image: settings.ogImage,
-    favicon: settings.url(favicon),
-    copyright: "CC BY-NC 4.0 Jordan Scales",
-    feedLinks: {
-      atom: settings.url("feed.atom"),
-    },
-    author: {
-      name: "Jordan Scales",
-      email: "me@jordanscales.com",
-      link: "https://jordanscales.com",
-    },
-  });
+	const favicon = await saveEmojiFavicon("👋");
+	const feed = new Feed({
+		title: "notes.jordanscales.com",
+		description: "Jordan's working notes",
+		id: settings.url("/"),
+		link: settings.url(""),
+		language: "en",
+		image: settings.ogImage,
+		favicon: settings.url(favicon),
+		copyright: "CC BY-NC 4.0 Jordan Scales",
+		feedLinks: {
+			atom: settings.url("feed.atom"),
+		},
+		author: {
+			name: "Jordan Scales",
+			email: "me@jordanscales.com",
+			link: "https://jordanscales.com",
+		},
+	});
 
-  await Promise.all([
-    ...pages.map((page) => savePage(page, backlinks, pages, feed)),
-    copyStaticAssets(),
-  ]);
+	await Promise.all([
+		...pages.map((page) => savePage(page, backlinks, pages, feed)),
+		copyStaticAssets(),
+	]);
 
-  await fs.promises.writeFile(settings.output("feed.atom"), feed.atom1());
+	await fs.promises.writeFile(settings.output("feed.atom"), feed.atom1());
 };
 
 (async () => {
-  try {
-    await main();
-  } catch (error) {
-    console.error(error);
-    process.exit(1);
-  }
+	try {
+		await main();
+	} catch (error) {
+		console.error(error);
+		process.exit(1);
+	}
 })();
