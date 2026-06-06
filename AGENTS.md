@@ -5,6 +5,7 @@
 - Install with `npm install`; this repo uses `package-lock.json`.
 - Typecheck: `npm run typecheck` (`tsc`, `noEmit`, strict, `allowJs: false`).
 - Test: `npm test`; focused snapshot test: `npx vitest run --globals test/render-snapshots.test.ts`.
+- Coverage: `npm run test:coverage` (`vitest run --globals --coverage`).
 - Build the site with `npm run build` (`tsx index.ts`), not `node index.js`.
 - Watch mode is `npm run watch`, which runs TypeScript watch, rebuild, and `serve build` concurrently.
 
@@ -29,3 +30,5 @@
 
 - Snapshot fixtures live in `test/fixtures/posts.ts`; snapshots live in `test/__snapshots__/render-snapshots.test.ts.snap`.
 - The snapshot test deep-clones fixtures, calls `renderPageContents`, and compares rendered HTML only; it does not hit Notion.
+- Unit tests live in `test/unit.test.ts` and test individual exported helpers (`blockToHtml`, `textToHtml`, `groupAdjacentBlocksRecursively`, `concatenateText`, etc.) and their various branch paths.
+- `coverage/` is gitignored; run `npm run test:coverage` to generate a report.

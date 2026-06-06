@@ -4,6 +4,7 @@
 		"format:check": "oxfmt --check .",
 		"typesync": "typesync",
 		"test": "vitest run --globals",
+		"test:coverage": "vitest run --globals --coverage",
 		"typecheck": "tsc",
 		"build": "tsx index.ts"
 	},
@@ -32,6 +33,7 @@
 		"@types/node": "^20.19.42",
 		"@types/node-emoji": "^1.8.1",
 		"@types/prismjs": "^1.16.6",
+		"@vitest/coverage-v8": "^4.1.8",
 		"oxfmt": "^0.53.0",
 		"tsx": "^4.20.5",
 		"typescript": "^6.0.3",

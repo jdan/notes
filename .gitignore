@@ -4,3 +4,4 @@ node_modules/
 /.env*
 /env.*
 *.sqlite3
+coverage/

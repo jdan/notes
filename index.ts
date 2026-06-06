@@ -957,4 +957,14 @@ if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
 	})();
 }
 
-export { blockToHtml, groupAdjacentBlocksRecursively, renderPageContents };
+export {
+	addDashes,
+	blockToHtml,
+	concatenateText,
+	groupAdjacentBlocksRecursively,
+	longDate,
+	registerBacklink,
+	renderPageContents,
+	sluggify,
+	textToHtml,
+};
