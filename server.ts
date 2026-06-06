@@ -11,23 +11,22 @@ config({
 });
 
 const fsPromises = fs.promises;
-const port = Number(process.env.PORT || 3000);
-const host = process.env.HOST || "127.0.0.1";
-const outputDir = path.resolve(process.env.BUILD || path.join(__dirname, "site"));
-const webhookPath = process.env.WEBHOOK_PATH || "/webhook/notion";
-const webhookSecret = process.env.WEBHOOK_SECRET;
 
-process.env.BUILD = outputDir;
+type NotesServerOptions = {
+	build?: () => Promise<void>;
+	outputDir?: string;
+	webhookPath?: string;
+	webhookSecret?: string;
+};
 
-let buildPromise: Promise<void> | null = null;
-let lastBuild: { startedAt: string; finishedAt?: string; error?: string } | null = null;
+type LastBuild = { startedAt: string; finishedAt?: string; error?: string } | null;
 
 function sendJson(res: http.ServerResponse, statusCode: number, body: unknown) {
 	res.writeHead(statusCode, { "Content-Type": "application/json" });
 	res.end(JSON.stringify(body));
 }
 
-function hasValidSecret(req: http.IncomingMessage, url: URL) {
+function hasValidSecret(req: http.IncomingMessage, url: URL, webhookSecret?: string) {
 	if (!webhookSecret) {
 		return false;
 	}
@@ -37,33 +36,45 @@ function hasValidSecret(req: http.IncomingMessage, url: URL) {
 	return token === webhookSecret || url.searchParams.get("secret") === webhookSecret;
 }
 
-async function runBuild() {
-	if (buildPromise) {
-		return buildPromise;
+async function runBuild(
+	build: () => Promise<void>,
+	state: { buildPromise: Promise<void> | null; lastBuild: LastBuild },
+) {
+	if (state.buildPromise) {
+		return state.buildPromise;
 	}
 
-	lastBuild = { startedAt: new Date().toISOString() };
-	buildPromise = (async () => {
+	state.lastBuild = { startedAt: new Date().toISOString() };
+	state.buildPromise = (async () => {
 		try {
-			const { main } = await import("./index");
-			await main();
-			lastBuild = { ...lastBuild!, finishedAt: new Date().toISOString() };
+			await build();
+			state.lastBuild = { ...state.lastBuild!, finishedAt: new Date().toISOString() };
 		} catch (error) {
-			lastBuild = {
-				...lastBuild!,
+			state.lastBuild = {
+				...state.lastBuild!,
 				finishedAt: new Date().toISOString(),
 				error: error instanceof Error ? error.message : String(error),
 			};
 			throw error;
 		} finally {
-			buildPromise = null;
+			state.buildPromise = null;
 		}
 	})();
 
-	return buildPromise;
+	return state.buildPromise;
 }
 
-async function serveStatic(req: http.IncomingMessage, res: http.ServerResponse, url: URL) {
+async function mainBuild() {
+	const { main } = await import("./index");
+	await main();
+}
+
+async function serveStatic(
+	req: http.IncomingMessage,
+	res: http.ServerResponse,
+	url: URL,
+	outputDir: string,
+) {
 	let pathname = decodeURIComponent(url.pathname);
 	if (pathname.startsWith("/fonts/")) {
 		pathname = pathname.replace(/^\/fonts/, "");
@@ -117,44 +128,67 @@ async function serveStatic(req: http.IncomingMessage, res: http.ServerResponse, 
 	}
 }
 
-const server = http.createServer(async (req, res) => {
-	const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+function createNotesServer(options: NotesServerOptions = {}) {
+	const outputDir = path.resolve(
+		options.outputDir || process.env.BUILD || path.join(__dirname, "site"),
+	);
+	const webhookPath = options.webhookPath || process.env.WEBHOOK_PATH || "/webhook/notion";
+	const webhookSecret = options.webhookSecret ?? process.env.WEBHOOK_SECRET;
+	const build = options.build || mainBuild;
+	const state: { buildPromise: Promise<void> | null; lastBuild: LastBuild } = {
+		buildPromise: null,
+		lastBuild: null,
+	};
 
-	if (url.pathname === "/healthz") {
-		sendJson(res, 200, {
-			ok: true,
-			building: Boolean(buildPromise),
-			lastBuild,
-		});
-		return;
-	}
+	process.env.BUILD = outputDir;
 
-	if (url.pathname === webhookPath) {
-		if (req.method !== "GET" && req.method !== "POST") {
-			res.writeHead(405, { Allow: "GET, POST" });
-			res.end("Method not allowed");
+	return http.createServer(async (req, res) => {
+		const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+
+		if (url.pathname === "/healthz") {
+			sendJson(res, 200, {
+				ok: true,
+				building: Boolean(state.buildPromise),
+				lastBuild: state.lastBuild,
+			});
 			return;
 		}
 
-		if (!hasValidSecret(req, url)) {
-			sendJson(res, 401, { ok: false, error: "Invalid webhook secret" });
+		if (url.pathname === webhookPath) {
+			if (req.method !== "GET" && req.method !== "POST") {
+				res.writeHead(405, { Allow: "GET, POST" });
+				res.end("Method not allowed");
+				return;
+			}
+
+			if (!hasValidSecret(req, url, webhookSecret)) {
+				sendJson(res, 401, { ok: false, error: "Invalid webhook secret" });
+				return;
+			}
+
+			const alreadyBuilding = Boolean(state.buildPromise);
+			runBuild(build, state).catch((error) => console.error("Build failed", error));
+			sendJson(res, alreadyBuilding ? 200 : 202, {
+				ok: true,
+				building: true,
+				message: alreadyBuilding ? "Build already running" : "Build started",
+			});
 			return;
 		}
 
-		const alreadyBuilding = Boolean(buildPromise);
-		runBuild().catch((error) => console.error("Build failed", error));
-		sendJson(res, alreadyBuilding ? 200 : 202, {
-			ok: true,
-			building: true,
-			message: alreadyBuilding ? "Build already running" : "Build started",
-		});
-		return;
-	}
+		await serveStatic(req, res, url, outputDir);
+	});
+}
 
-	await serveStatic(req, res, url);
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+	const port = Number(process.env.PORT || 3000);
+	const host = process.env.HOST || "127.0.0.1";
+	const server = createNotesServer();
 
-server.listen(port, host, () => {
-	console.log(`notes server listening on http://${host}:${port}`);
-	console.log(`serving ${outputDir}`);
-});
+	server.listen(port, host, () => {
+		console.log(`notes server listening on http://${host}:${port}`);
+		console.log(`serving ${process.env.BUILD}`);
+	});
+}
+
+export { createNotesServer, hasValidSecret, runBuild, serveStatic };
