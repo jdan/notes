@@ -249,7 +249,7 @@ function sluggify(str) {
 }
 
 /** @param {string} str containing an ISO *date*, eg yyyy-mm-dd */
-function relativeDate(str) {
+function longDate(str) {
 	const [year, month, day] = str.split("-").map((i) => parseInt(i));
 
 	const date = new Date();
@@ -257,16 +257,11 @@ function relativeDate(str) {
 	date.setMonth(month - 1);
 	date.setDate(day);
 
-	const deltaDays = Math.round(
-		(date.getTime() - Date.now()) / (1000 * 3600 * 24),
-	);
-
-	const relative = new Intl.RelativeTimeFormat("en", {
-		numeric: "auto",
-	});
-
-	const formatted = relative.format(deltaDays, "days");
-	return formatted[0].toUpperCase() + formatted.slice(1);
+	return new Intl.DateTimeFormat("en-US", {
+		month: "long",
+		day: "numeric",
+		year: "numeric",
+	}).format(date);
 }
 
 /**
@@ -342,7 +337,7 @@ async function textToHtml(pageId, text, allPages) {
 			const { start } = text.mention.date;
 
 			if (start && /^\d{4}-\d{2}-\d{2}$/.test(start)) {
-				return relativeDate(start);
+				return longDate(start);
 			} else if (start) {
 				const [date, time] = start.slice(0, 16).split("T");
 
