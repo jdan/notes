@@ -1,404 +1,405 @@
 :root {
-  --font-color: black;
-  --background-color: white;
-  --footer-label-color: #444444;
-  --dimmer: #e6e6e6;
-  --dimmest: #f6f6f6;
-  --link-color: #787672;
-  --image-width: 460px;
+	--font-color: black;
+	--background-color: white;
+	--footer-label-color: #444444;
+	--dimmer: #e6e6e6;
+	--dimmest: #f6f6f6;
+	--link-color: #787672;
+	--image-width: 460px;
 }
 
 body.dark {
-  --font-color: rgba(255, 255, 255, 0.9);
-  --background-color: #2f3437;
-  --footer-label-color: #eee;
-  --dimmer: #64686a;
-  --dimmest: #464b4f;
-  --link-color: #b2b4b5;
+	--font-color: rgba(255, 255, 255, 0.9);
+	--background-color: #2f3437;
+	--footer-label-color: #eee;
+	--dimmer: #64686a;
+	--dimmest: #464b4f;
+	--link-color: #b2b4b5;
 }
 
 body {
-  background: var(--background-color);
-  color: var(--font-color);
-  margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  line-height: 1.4;
+	background: var(--background-color);
+	color: var(--font-color);
+	margin: 0;
+	padding: 0;
+	font-family:
+		-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+		"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+	line-height: 1.4;
 }
 
 img.emoji {
-  --emoji-size: 20px;
-  width: var(--emoji-size);
-  height: var(--emoji-size);
-  vertical-align: bottom;
+	--emoji-size: 20px;
+	width: var(--emoji-size);
+	height: var(--emoji-size);
+	vertical-align: bottom;
 }
 
 h1 img.emoji,
 h2 img.emoji,
 h3 img.emoji {
-  vertical-align: baseline;
+	vertical-align: baseline;
 }
 
 a {
-  color: var(--link-color);
+	color: var(--link-color);
 }
 
 a.with-emoji {
-  display: inline-flex;
-  align-items: center;
-  vertical-align: bottom;
+	display: inline-flex;
+	align-items: center;
+	vertical-align: bottom;
 }
 
 a.with-emoji img.emoji {
-  margin-right: 4px;
+	margin-right: 4px;
 }
 
 a:visited {
-  color: var(--link-color);
+	color: var(--link-color);
 }
 
 .text {
-  margin: 1em 0;
+	margin: 1em 0;
 }
 
 .children {
-  margin-left: 1.6em;
+	margin-left: 1.6em;
 }
 
 pre code {
-  padding: 1em 0 !important;
-  overflow: auto;
-  display: block;
+	padding: 1em 0 !important;
+	overflow: auto;
+	display: block;
 }
 
 .text > code {
-  background: var(--dimmest);
-  font-weight: bold;
-  border-radius: 2px;
-  padding: 2px 4px;
+	background: var(--dimmest);
+	font-weight: bold;
+	border-radius: 2px;
+	padding: 2px 4px;
 }
 
 figure {
-  margin: 16px auto;
-  display: flex;
-  max-width: var(--image-width);
-  flex-direction: column;
+	margin: 16px auto;
+	display: flex;
+	max-width: var(--image-width);
+	flex-direction: column;
 }
 
 li figure {
-  margin: 16px 0;
+	margin: 16px 0;
 }
 
 figure img {
-  width: 100%;
-  height: auto;
+	width: 100%;
+	height: auto;
 }
 
 figcaption {
-  font-size: 14px;
-  color: var(--link-color);
-  margin-top: 4px;
+	font-size: 14px;
+	color: var(--link-color);
+	margin-top: 4px;
 }
 
 header {
-  display: flex;
-  align-items: center;
+	display: flex;
+	align-items: center;
 }
 
 #toggle-btn {
-  padding: 8px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 18px;
+	padding: 8px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	font-size: 18px;
 }
 
 main {
-  box-sizing: border-box;
-  width: 660px;
-  margin: 80px auto 40px;
+	box-sizing: border-box;
+	width: 660px;
+	margin: 80px auto 40px;
 }
 
 footer {
-  padding-top: 20px;
+	padding-top: 20px;
 }
 
 ul {
-  padding-left: 1.15em;
+	padding-left: 1.15em;
 }
 
 ol {
-  padding-left: 1.4em;
+	padding-left: 1.4em;
 }
 
 ol ol li {
-  list-style-type: lower-alpha;
+	list-style-type: lower-alpha;
 }
 
 ol ol ol li {
-  list-style-type: lower-roman;
+	list-style-type: lower-roman;
 }
 
 ol ol ol ol li {
-  list-style-type: decimal;
+	list-style-type: decimal;
 }
 
 ol ol ol ol ol li {
-  list-style-type: lower-alpha;
+	list-style-type: lower-alpha;
 }
 
 ol ol ol ol ol ol li {
-  list-style-type: lower-roman;
+	list-style-type: lower-roman;
 }
 
 .list-item {
-  padding: 3px 0;
+	padding: 3px 0;
 }
 
 footer label {
-  display: block;
-  font-size: 14px;
-  text-transform: uppercase;
-  color: var(--footer-label-color);
-  margin-bottom: 8px;
+	display: block;
+	font-size: 14px;
+	text-transform: uppercase;
+	color: var(--footer-label-color);
+	margin-bottom: 8px;
 }
 
 footer ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  column-gap: 10px;
-  row-gap: 10px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	column-gap: 10px;
+	row-gap: 10px;
 }
 
 footer ul a {
-  display: flex !important;
-  font-weight: bold;
-  padding: 10px;
-  background: var(--dimmest);
-  border-radius: 4px;
-  color: var(--font-color);
-  text-decoration: none;
+	display: flex !important;
+	font-weight: bold;
+	padding: 10px;
+	background: var(--dimmest);
+	border-radius: 4px;
+	color: var(--font-color);
+	text-decoration: none;
 }
 
 footer ul a.with-emoji img.emoji {
-  margin-right: 8px;
+	margin-right: 8px;
 }
 
 footer ul a:hover,
 footer ul a:focus {
-  background: var(--dimmer);
+	background: var(--dimmer);
 }
 
 blockquote {
-  border-left: 4px solid var(--link-color);
-  margin: 0;
-  padding: 0 14px;
+	border-left: 4px solid var(--link-color);
+	margin: 0;
+	padding: 0 14px;
 }
 
 blockquote .text {
-  margin: 0;
-  padding: 3px 2px;
+	margin: 0;
+	padding: 3px 2px;
 }
 
 details > :not(summary) {
-  margin-left: 16px !important;
+	margin-left: 16px !important;
 }
 
 :root {
-  --emoji-width: 32px;
-  --emoji-gap: 16px;
-  --heading1--margin: 1.34em;
+	--emoji-width: 32px;
+	--emoji-gap: 16px;
+	--heading1--margin: 1.34em;
 }
 
 .title-row {
-  display: flex;
-  margin: var(--heading1--margin) 0 var(--heading1--margin)
-    calc(-1 * (var(--emoji-gap) + var(--emoji-width)));
-  align-items: baseline;
+	display: flex;
+	margin: var(--heading1--margin) 0 var(--heading1--margin)
+		calc(-1 * (var(--emoji-gap) + var(--emoji-width)));
+	align-items: baseline;
 }
 
 .title-row h1 {
-  margin: 0;
+	margin: 0;
 }
 
 .title-row img {
-  margin-right: var(--emoji-gap);
-  position: relative;
-  top: 4px;
-  width: var(--emoji-width);
+	margin-right: var(--emoji-gap);
+	position: relative;
+	top: 4px;
+	width: var(--emoji-width);
 }
 
 hr {
-  margin: 32px 0;
-  border-color: var(--link-color);
-  opacity: 0.5;
+	margin: 32px 0;
+	border-color: var(--link-color);
+	opacity: 0.5;
 }
 
 .p06a5a7d9 {
-  --image-width: 250px;
+	--image-width: 250px;
 }
 
 .p06a5a7d9 li {
-  position: relative;
-  padding-left: 8px;
+	position: relative;
+	padding-left: 8px;
 }
 
 .p06a5a7d9 li figure {
-  margin: 1.5em 0;
+	margin: 1.5em 0;
 }
 
 .p06a5a7d9 li:not(:last-of-type)::after {
-  content: " ";
-  position: absolute;
-  left: -15px;
-  top: 12px;
-  bottom: -30px;
-  width: 1px;
-  background: var(--font-color);
+	content: " ";
+	position: absolute;
+	left: -15px;
+	top: 12px;
+	bottom: -30px;
+	width: 1px;
+	background: var(--font-color);
 }
 
 .p06a5a7d9 li:not(:first-of-type)::before {
-  content: " ";
-  position: absolute;
-  left: -15px;
-  top: 0;
-  height: 16px;
-  width: 1px;
-  background: var(--font-color);
+	content: " ";
+	position: absolute;
+	left: -15px;
+	top: 0;
+	height: 16px;
+	width: 1px;
+	background: var(--font-color);
 }
 
 h1,
 h2,
 h3 {
-  position: relative;
-  padding-left: 48px;
-  left: -48px;
+	position: relative;
+	padding-left: 48px;
+	left: -48px;
 }
 
 h1 .link,
 h2 .link,
 h3 .link {
-  position: absolute;
-  display: none;
-  left: 16px;
-  text-decoration: none;
+	position: absolute;
+	display: none;
+	left: 16px;
+	text-decoration: none;
 }
 
 h1 .link {
-  left: 8px;
+	left: 8px;
 }
 
 h2 .link {
-  left: 16px;
+	left: 16px;
 }
 
 h3 .link {
-  left: 24px;
+	left: 24px;
 }
 
 h1:hover .link,
 h2:hover .link,
 h3:hover .link {
-  display: block;
+	display: block;
 }
 
 @media (max-width: 660px) {
-  :root {
-    --image-width: 100%;
-  }
+	:root {
+		--image-width: 100%;
+	}
 
-  main {
-    width: 100%;
-    margin: 0;
-    padding: 40px 20px;
-  }
+	main {
+		width: 100%;
+		margin: 0;
+		padding: 40px 20px;
+	}
 
-  .title-row {
-    align-items: flex-start;
-    flex-direction: column;
-    margin: var(--heading1--margin) 0;
-  }
+	.title-row {
+		align-items: flex-start;
+		flex-direction: column;
+		margin: var(--heading1--margin) 0;
+	}
 
-  .title-row h1 {
-    margin-top: 4px;
-  }
+	.title-row h1 {
+		margin-top: 4px;
+	}
 
-  .title-row img {
-    top: 0;
-  }
+	.title-row img {
+		top: 0;
+	}
 
-  pre code {
-    font-size: 14px !important;
-  }
+	pre code {
+		font-size: 14px !important;
+	}
 
-  footer ul {
-    grid-template-columns: 1fr;
-    column-gap: 6px;
-    row-gap: 6px;
-  }
+	footer ul {
+		grid-template-columns: 1fr;
+		column-gap: 6px;
+		row-gap: 6px;
+	}
 
-  footer ul a {
-    padding: 14px;
-  }
+	footer ul a {
+		padding: 14px;
+	}
 
-  h1:hover .link,
-  h2:hover .link,
-  h3:hover .link {
-    display: none;
-  }
+	h1:hover .link,
+	h2:hover .link,
+	h3:hover .link {
+		display: none;
+	}
 }
 
 /* Roughly: https://github.com/jdan/hashart/blob/main/pages/%5Bpiece%5D/art.module.css */
 .hashart .explanation,
 .hashart input {
-  font-family: monospace;
-  font-size: 15px;
+	font-family: monospace;
+	font-size: 15px;
 }
 
 .hashart input {
-  padding: 6px;
+	padding: 6px;
 }
 
 .hashart .canvas {
-  width: 660px;
-  height: 495px;
-  margin: 0 auto;
-  background: white;
-  border: 1px solid var(--link-color);
+	width: 660px;
+	height: 495px;
+	margin: 0 auto;
+	background: white;
+	border: 1px solid var(--link-color);
 }
 
 .hashart .explanation {
-  display: flex;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
+	display: flex;
+	margin-bottom: 12px;
+	flex-wrap: wrap;
 }
 
 .hashart .bytes {
-  font-weight: bold;
-  border-top: 1px solid var(--dimmer);
+	font-weight: bold;
+	border-top: 1px solid var(--dimmer);
 }
 
 .hashart .segment {
-  margin-right: 8px;
+	margin-right: 8px;
 }
 
 .hashart .paragraph {
-  margin: 1em 0;
+	margin: 1em 0;
 }
 
 @media (max-width: 660px) {
-  .hashart .canvas {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 4 / 3;
-  }
+	.hashart .canvas {
+		width: 100%;
+		height: auto;
+		aspect-ratio: 4 / 3;
+	}
 
-  /* tables are hard to make responsive */
-  table {
-    overflow-x: scroll;
-  }
+	/* tables are hard to make responsive */
+	table {
+		overflow-x: scroll;
+	}
 }

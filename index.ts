@@ -1,19 +1,20 @@
 import fs from "fs";
 import https from "https";
 import path from "path";
+
+import type { Client as NotionClient } from "@notionhq/client";
+import type { GetBlockResponse } from "@notionhq/client/build/src/api-endpoints";
 import { config } from "dotenv";
-import emoji from "node-emoji";
 import emojiUnicode from "emoji-unicode";
 import { Feed } from "feed";
 import katex from "katex";
 import mimeTypes from "mime-types";
+import emoji from "node-emoji";
 import forEachRow from "notion-for-each-row";
 import Prism from "prismjs";
 import loadLanguages from "prismjs/components/";
 import { DataTypes, Sequelize } from "sequelize";
 import ts from "typescript";
-import type { Client as NotionClient } from "@notionhq/client";
-import type { GetBlockResponse } from "@notionhq/client/build/src/api-endpoints";
 
 config({
 	path: process.env.CONFIG,
@@ -27,10 +28,7 @@ const DEBUG = null;
 // const DEBUG = "fe053dd4-76c3-4ed6-8137-24b7e319599c";
 
 type Block = Extract<GetBlockResponse, { type: string }>;
-type RichText = Extract<
-	Block,
-	{ type: "paragraph" }
->["paragraph"]["text"][number];
+type RichText = Extract<Block, { type: "paragraph" }>["paragraph"]["text"][number];
 type RecursiveBranch<Branch, Leaf = never> = Branch & {
 	children: Array<Leaf | RecursiveBranch<Branch, Leaf>>;
 };
@@ -65,10 +63,7 @@ type CardPage = {
 	created: string;
 	publishToRss: boolean;
 };
-type PageIcon =
-	| { type: "file"; file: { url: string } }
-	| { type: "emoji"; emoji: string }
-	| null;
+type PageIcon = { type: "file"; file: { url: string } } | { type: "emoji"; emoji: string } | null;
 
 loadLanguages([
 	"ocaml",
@@ -105,11 +100,7 @@ const settings = new (class Settings {
 	get outputDir() {
 		return (
 			process.env.BUILD ||
-			path.join(
-				__dirname,
-				"build",
-				this.baseUrl[0] === "/" ? this.baseUrl.slice(1) : ".",
-			)
+			path.join(__dirname, "build", this.baseUrl[0] === "/" ? this.baseUrl.slice(1) : ".")
 		);
 	}
 
@@ -225,24 +216,15 @@ function longDate(str: string) {
 	}).format(date);
 }
 
-async function textToHtml(
-	pageId: string,
-	text: RichText,
-	allPages: CardPage[],
-) {
+async function textToHtml(pageId: string, text: RichText, allPages: CardPage[]) {
 	if (text.type === "text") {
-		const codeFriendly = text.text.content
-			.replace(/</g, "&lt;")
-			.replace(/>/g, "&gt;");
+		const codeFriendly = text.text.content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 		const emojiToLoad = new Set<string>([]);
-		let content = emoji.replace(
-			codeFriendly,
-			({ emoji }: { emoji: string }) => {
-				emojiToLoad.add(emoji);
-				return emoji;
-			},
-		);
+		let content = emoji.replace(codeFriendly, ({ emoji }: { emoji: string }) => {
+			emojiToLoad.add(emoji);
+			return emoji;
+		});
 
 		await Promise.all(
 			[...emojiToLoad].map(async (emoji) => {
@@ -314,9 +296,7 @@ async function textToHtml(
 					day: "numeric",
 					year: "numeric",
 				} as const;
-				const longDate = new Intl.DateTimeFormat("en-US", options).format(
-					localDate,
-				);
+				const longDate = new Intl.DateTimeFormat("en-US", options).format(localDate);
 				return `${longDate} - ${time}`;
 			}
 		} else if ((text.mention as any).type === "template_mention") {
@@ -340,67 +320,28 @@ async function copyStaticAssets() {
 		path.join(__dirname, "node_modules/prismjs/themes/prism-coy.css"),
 		path.join(__dirname, "node_modules/prismjs/themes/prism-tomorrow.css"),
 		path.join(__dirname, "node_modules/katex/dist/katex.min.css"),
-		path.join(
-			__dirname,
-			"node_modules/katex/dist/fonts/KaTeX_Math-Italic.woff2",
-		),
-		path.join(
-			__dirname,
-			"node_modules/katex/dist/fonts/KaTeX_Main-Regular.woff2",
-		),
-		path.join(
-			__dirname,
-			"node_modules/katex/dist/fonts/KaTeX_Size4-Regular.woff2",
-		),
-		path.join(
-			__dirname,
-			"node_modules/katex/dist/fonts/KaTeX_Math-Italic.woff",
-		),
-		path.join(
-			__dirname,
-			"node_modules/katex/dist/fonts/KaTeX_Main-Regular.woff",
-		),
-		path.join(
-			__dirname,
-			"node_modules/katex/dist/fonts/KaTeX_Size4-Regular.woff",
-		),
+		path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Math-Italic.woff2"),
+		path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Main-Regular.woff2"),
+		path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Size4-Regular.woff2"),
+		path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Math-Italic.woff"),
+		path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Main-Regular.woff"),
+		path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Size4-Regular.woff"),
 		path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Math-Italic.ttf"),
-		path.join(
-			__dirname,
-			"node_modules/katex/dist/fonts/KaTeX_Main-Regular.ttf",
-		),
-		path.join(
-			__dirname,
-			"node_modules/katex/dist/fonts/KaTeX_Size4-Regular.ttf",
-		),
+		path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Main-Regular.ttf"),
+		path.join(__dirname, "node_modules/katex/dist/fonts/KaTeX_Size4-Regular.ttf"),
 		path.join(__dirname, "node_modules/react/umd/react.production.min.js"),
-		path.join(
-			__dirname,
-			"node_modules/react-dom/umd/react-dom.production.min.js",
-		),
+		path.join(__dirname, "node_modules/react-dom/umd/react-dom.production.min.js"),
 	];
 	return Promise.all(
-		assets.map(async (asset) =>
-			fsPromises.copyFile(asset, settings.output(path.basename(asset))),
-		),
+		assets.map(async (asset) => fsPromises.copyFile(asset, settings.output(path.basename(asset)))),
 	);
 }
 
-const linkOfId = (
-	allPages: CardPage[],
-	id: string,
-	args: { overwriteTitle?: string } = {},
-) => {
+const linkOfId = (allPages: CardPage[], id: string, args: { overwriteTitle?: string } = {}) => {
 	const page = allPages.find((entry) => entry.id === id);
 	if (page) {
-		return `<a href="${settings.url(page.filename)}"${
-			page.favicon ? ` class="with-emoji"` : ""
-		}>
-      ${
-				page.favicon
-					? `<img class="emoji" alt="" src="${settings.url(page.favicon)}">`
-					: ""
-			}
+		return `<a href="${settings.url(page.filename)}"${page.favicon ? ` class="with-emoji"` : ""}>
+      ${page.favicon ? `<img class="emoji" alt="" src="${settings.url(page.favicon)}">` : ""}
       ${args.overwriteTitle || page.title}</a>`;
 	} else {
 		return `[${id}]`;
@@ -408,17 +349,7 @@ const linkOfId = (
 };
 
 async function savePage(
-	{
-		id,
-		title,
-		created,
-		favicon,
-		headingIcon,
-		content,
-		filename,
-		publishToRss,
-		ogImage,
-	}: CardPage,
+	{ id, title, created, favicon, headingIcon, content, filename, publishToRss, ogImage }: CardPage,
 	backlinks: Backlinks,
 	allPages: CardPage[],
 ) {
@@ -431,10 +362,7 @@ async function savePage(
 				.join("\n")}</ul></footer>`
 		: "";
 
-	const script = await fsPromises.readFile(
-		path.join(__dirname, "public/script.ts"),
-		"utf8",
-	);
+	const script = await fsPromises.readFile(path.join(__dirname, "public/script.ts"), "utf8");
 	const { outputText: browserScript } = ts.transpileModule(script, {
 		compilerOptions: { target: ts.ScriptTarget.ES2016 },
 	});
@@ -447,9 +375,7 @@ async function savePage(
     <html lang="en">
     <head>
       <title>${title}</title>
-      <link rel="Shortcut Icon" type="image/x-icon" href="${settings.url(
-				icon,
-			)}" />
+      <link rel="Shortcut Icon" type="image/x-icon" href="${settings.url(icon)}" />
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -464,9 +390,7 @@ async function savePage(
 
       <link rel="stylesheet" href="${settings.url("style.css")}">
       <link rel="preload" href="${settings.url("prism-coy.css")}" as="style">
-      <link rel="preload" href="${settings.url(
-				"prism-tomorrow.css",
-			)}" as="style">
+      <link rel="preload" href="${settings.url("prism-tomorrow.css")}" as="style">
       <link id="prism" rel="stylesheet" href="${settings.url("prism-coy.css")}">
       <link rel="stylesheet" href=${settings.url("katex.min.css")}>
     </head>
@@ -515,19 +439,14 @@ async function savePage(
 	return null;
 }
 
-async function downloadImage(
-	url: string,
-	filenamePrefix: string,
-): Promise<string | undefined> {
+async function downloadImage(url: string, filenamePrefix: string): Promise<string | undefined> {
 	const files = await fsPromises.readdir(settings.outputDir);
 	let filename = files.find((name: string) => name.startsWith(filenamePrefix));
 
 	if (!filename) {
 		return new Promise<string | undefined>((resolve) => {
 			https.get(url, (res: any) => {
-				const ext = mimeTypes.extension(
-					res.headers["content-type"] || "image/png",
-				);
+				const ext = mimeTypes.extension(res.headers["content-type"] || "image/png");
 				const dest = `${filenamePrefix}.${ext}`;
 				const destStream = fs.createWriteStream(settings.output(dest));
 				res
@@ -551,9 +470,7 @@ async function downloadImageBlock(
 	blockId: string,
 ): Promise<string | undefined> {
 	const filename = await downloadImage(
-		block.image.type === "file"
-			? block.image.file.url
-			: block.image.external.url,
+		block.image.type === "file" ? block.image.file.url : block.image.external.url,
 		`${block.id}.image`,
 	);
 
@@ -580,16 +497,12 @@ async function blockToHtml(
 	}
 
 	const textToHtml_ = async (texts: RichText[]) => {
-		const converts = await Promise.all(
-			texts.map((text) => textToHtml(pageId, text, allPages)),
-		);
+		const converts = await Promise.all(texts.map((text) => textToHtml(pageId, text, allPages)));
 		return converts.join("");
 	};
 	const blockId = "b" + block.id.replace(/-/g, "").slice(0, 8);
 	const children = await Promise.all(
-		block.children.map((block: CardBlock) =>
-			blockToHtml(block, pageId, allPages),
-		),
+		block.children.map((block: CardBlock) => blockToHtml(block, pageId, allPages)),
 	);
 
 	if (block.type === "bulleted_list") {
@@ -653,15 +566,11 @@ async function blockToHtml(
 	} else if (block.type === "code") {
 		const isPreview = /preview=true/.test(concatenateText(block.code.caption));
 		if (isPreview) {
-			return await renderPreview(
-				pageId,
-				block as CardBlockBase & { type: "code" },
-			);
+			return await renderPreview(pageId, block as CardBlockBase & { type: "code" });
 		}
 
 		const hasCustomLanguage =
-			block.code.language === "plain text" &&
-			/^lang=/.test(concatenateText(block.code.caption));
+			block.code.language === "plain text" && /^lang=/.test(concatenateText(block.code.caption));
 
 		const language = hasCustomLanguage
 			? concatenateText(block.code.caption).slice("lang=".length)
@@ -670,11 +579,7 @@ async function blockToHtml(
 			console.log(pageId, "Unrecognized language --", language);
 		}
 		const code = Prism.languages[language]
-			? Prism.highlight(
-					concatenateText(block.code.text),
-					Prism.languages[language],
-					language,
-				)
+			? Prism.highlight(concatenateText(block.code.text), Prism.languages[language], language)
 			: concatenateText(block.code.text);
 		return `<pre id="${blockId}"><code class="language-${language.replace(
 			/\s/g,
@@ -687,10 +592,7 @@ async function blockToHtml(
 		});
 	} else if (block.type === "image") {
 		if (block.image.type === "file") {
-			return downloadImageBlock(
-				block as CardBlockBase & { type: "image" },
-				blockId,
-			);
+			return downloadImageBlock(block as CardBlockBase & { type: "image" }, blockId);
 		} else if (block.image.type === "external") {
 			const caption = concatenateText(block.image.caption);
 			return `<figure id="${blockId}">
@@ -702,9 +604,7 @@ async function blockToHtml(
 		}
 	} else if (block.type === "to_do") {
 		return `<div><label>
-      <input type="checkbox" onclick="return false" ${
-				block.to_do.checked ? "checked" : ""
-			}>
+      <input type="checkbox" onclick="return false" ${block.to_do.checked ? "checked" : ""}>
       ${await textToHtml_(block.to_do.text)}
     </label></div>`;
 	} else if (block.type === "quote") {
@@ -735,10 +635,7 @@ async function blockToHtml(
 		}
 	} else if (block.type === "video") {
 		const prefix = "https://www.youtube.com/watch?v=";
-		if (
-			block.video.type === "external" &&
-			block.video.external.url.startsWith(prefix)
-		) {
+		if (block.video.type === "external" && block.video.external.url.startsWith(prefix)) {
 			const id = block.video.external.url.slice(prefix.length);
 			return `<iframe width="100%" height="400" src="https://www.youtube.com/embed/${id}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
 		} else {
@@ -749,10 +646,7 @@ async function blockToHtml(
 	}
 }
 
-async function renderPreview(
-	pageId: string,
-	block: CardBlockBase & { type: "code" },
-) {
+async function renderPreview(pageId: string, block: CardBlockBase & { type: "code" }) {
 	const code = concatenateText(block.code.text);
 	const language = block.code.language.toLowerCase();
 
@@ -881,10 +775,7 @@ async function getAllChildBlocks(notion: NotionClient, id: string) {
 }
 
 async function getChildren(notion: NotionClient, id: string) {
-	const blocks = (await getAllChildBlocks(
-		notion,
-		id,
-	)) as RecursiveTree<Block>[];
+	const blocks = (await getAllChildBlocks(notion, id)) as RecursiveTree<Block>[];
 	return Promise.all(
 		blocks.map(async (block) => {
 			if (block.has_children) {
@@ -897,10 +788,7 @@ async function getChildren(notion: NotionClient, id: string) {
 	);
 }
 
-async function saveFavicon(
-	pageId: string,
-	icon: PageIcon,
-): Promise<string | undefined> {
+async function saveFavicon(pageId: string, icon: PageIcon): Promise<string | undefined> {
 	if (icon && icon.type === "file") {
 		return await downloadImage(icon.file.url, `${pageId}.icon`);
 	} else if (icon && icon.type === "emoji") {
@@ -953,8 +841,7 @@ const main = async function main() {
 
 			let existingPage = await PageModel.findByPk(id);
 			const existingPageHasUpdates =
-				new Date(last_edited_time).getTime() >
-				new Date(existingPage?.updatedAt).getTime();
+				new Date(last_edited_time).getTime() > new Date(existingPage?.updatedAt).getTime();
 
 			if (DEBUG || !existingPage || existingPageHasUpdates) {
 				existingPage =
@@ -979,25 +866,17 @@ const main = async function main() {
 					: null;
 
 				const filename =
-					(properties.Filename
-						? concatenateText(properties.Filename.rich_text)
-						: "") || `${id.replace(/-/g, "").slice(0, 8)}.html`;
+					(properties.Filename ? concatenateText(properties.Filename.rich_text) : "") ||
+					`${id.replace(/-/g, "").slice(0, 8)}.html`;
 
 				const ogImage = properties["og:image"].files[0]
-					? await downloadImage(
-							properties["og:image"].files[0].file.url,
-							`${id}.ogImage`,
-						)
+					? await downloadImage(properties["og:image"].files[0].file.url, `${id}.ogImage`)
 					: null;
 
 				const publishToRss = properties["Publish to RSS"].checkbox;
 
 				const blocks = groupAdjacentBlocksRecursively(
-					groupAdjacentBlocksRecursively(
-						children,
-						"numbered_list_item",
-						"numbered_list",
-					),
+					groupAdjacentBlocksRecursively(children, "numbered_list_item", "numbered_list"),
 					"bulleted_list_item",
 					"bulleted_list",
 				);
@@ -1048,9 +927,7 @@ const main = async function main() {
 		},
 	});
 
-	const rssItems = await Promise.all(
-		pages.map((page) => savePage(page, backlinks, pages)),
-	);
+	const rssItems = await Promise.all(pages.map((page) => savePage(page, backlinks, pages)));
 	await copyStaticAssets();
 
 	const publishedItems = [];

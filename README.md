@@ -10,7 +10,6 @@ As a heads up, this barely works at all. It may not handle HTML escaping correct
 
 1. [Create a new Notion integration](https://developers.notion.com/docs/getting-started#step-1-create-an-integration)
 1. Create a new database and note it's ID from the address bar
-
    - `https://www.notion.so/[username]/[your database ID, copy this!]?v=[ignore this]`
    - Add a column called "Filename" to set the output filename for a card. This is required for an `index.html`.
 

@@ -26,9 +26,7 @@ function toggleTheme() {
 }
 
 if (!localStorage.getItem("theme")) {
-	const osTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-		? "dark"
-		: "light";
+	const osTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 	localStorage.setItem("theme", osTheme);
 }
 

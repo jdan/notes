@@ -1,5 +1,5 @@
 declare module "emoji-unicode" {
-	declare const emojiFn: (emoji: string) => string;
+	const emojiFn: (emoji: string) => string;
 	export = emojiFn;
 }
 
@@ -13,7 +13,7 @@ declare module "notion-for-each-row" {
 		pageSize?: number;
 	}
 
-	declare const notionForEachRowFn: (
+	const notionForEachRowFn: (
 		options: Options,
 		callback: (page: Page, notionApiClient: Client) => void | Promise<void>,
 	) => Promise<void>;
