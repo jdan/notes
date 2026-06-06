@@ -1351,6 +1351,35 @@ test("image/file block renders with cached download", async () => {
 	}
 });
 
+test("image/file block includes dimensions for cached PNG", async () => {
+	const block = {
+		id: "test-sized-image",
+		type: "image",
+		image: {
+			type: "file",
+			file: { url: "https://example.com/img.png", expiry_time: "" },
+			caption: [{ type: "text", text: { content: "Alt text" }, plain_text: "Alt text" }],
+		},
+		children: [],
+		has_children: false,
+	};
+	const filename = "test-sized-image.image.png";
+	const png = Buffer.from([
+		0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+		0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03,
+	]);
+
+	try {
+		fs.writeFileSync(settings.output(filename), png);
+		const result = await blockToHtml(block as any, "page-1", pages);
+		expect(result).toContain('src="/test-sized-image.image.png"');
+		expect(result).toContain('width="2" height="3"');
+	} finally {
+		const f = settings.output(filename);
+		if (fs.existsSync(f)) fs.unlinkSync(f);
+	}
+});
+
 describe("copyStaticAssets", () => {
 	test("copies asset files", async () => {
 		await copyStaticAssets();
@@ -1411,6 +1440,32 @@ describe("savePage", () => {
 		expect(content).toContain("<p>Hello</p>");
 		expect(content).toContain('"prismCoy":"/prefix/prism-coy.css"');
 		expect(content).toContain('"prismTomorrow":"/prefix/prism-tomorrow.css"');
+		expect(content).not.toContain("katex.min.css");
+	});
+
+	test("includes katex stylesheet when content contains math", async () => {
+		const fs = await import("fs");
+		const filename = "test-katex-page.html";
+
+		await savePage(
+			{
+				id: "katex-page",
+				title: "KaTeX",
+				created: "2024-01-01T00:00:00.000Z",
+				favicon: "",
+				headingIcon: null,
+				content: '<span class="katex">x</span>',
+				filename,
+				publishToRss: false,
+				ogImage: null,
+			},
+			{},
+			[],
+		);
+
+		const dest = settings.output(filename);
+		const content = fs.readFileSync(dest, "utf8");
+		expect(content).toContain('href="/katex.min.css"');
 	});
 
 	test("rejects filenames outside the output directory", async () => {

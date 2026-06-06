@@ -65,6 +65,7 @@ type CardPage = {
 	publishToRss: boolean;
 };
 type PageIcon = { type: "file"; file: { url: string } } | { type: "emoji"; emoji: string } | null;
+type ImageDimensions = { width: number; height: number };
 
 loadLanguages([
 	"ocaml",
@@ -420,6 +421,9 @@ async function savePage(
 	const metaImage = ogImage ? settings.url(ogImage) : settings.ogImage;
 	const metaDescription = pageMetaDescription(title, content);
 	const twitterCard = ogImage ? "summary_large_image" : "summary";
+	const katexStylesheet = (content || "").includes('class="katex')
+		? `<link rel="stylesheet" href="${settings.url("katex.min.css")}">`
+		: "";
 	const themeAssets = JSON.stringify({
 		prismCoy: settings.url("prism-coy.css"),
 		prismTomorrow: settings.url("prism-tomorrow.css"),
@@ -450,7 +454,7 @@ async function savePage(
       <link rel="preload" href="${settings.url("prism-coy.css")}" as="style">
       <link rel="preload" href="${settings.url("prism-tomorrow.css")}" as="style">
       <link id="prism" rel="stylesheet" href="${settings.url("prism-coy.css")}">
-      <link rel="stylesheet" href=${settings.url("katex.min.css")}>
+      ${katexStylesheet}
     </head>
     <body>
       <script>0</script>
@@ -528,6 +532,52 @@ async function downloadImage(url: string, filenamePrefix: string): Promise<strin
 	}
 }
 
+async function getImageDimensions(filename: string): Promise<ImageDimensions | undefined> {
+	const file = await fsPromises.readFile(settings.output(filename));
+
+	if (file.length >= 24 && file.toString("ascii", 1, 4) === "PNG") {
+		return {
+			width: file.readUInt32BE(16),
+			height: file.readUInt32BE(20),
+		};
+	}
+
+	if (file.length >= 4 && file[0] === 0xff && file[1] === 0xd8) {
+		let offset = 2;
+		while (offset < file.length) {
+			if (file[offset] !== 0xff) {
+				break;
+			}
+
+			const marker = file[offset + 1];
+			const length = file.readUInt16BE(offset + 2);
+			if (
+				marker >= 0xc0 &&
+				marker <= 0xcf &&
+				marker !== 0xc4 &&
+				marker !== 0xc8 &&
+				marker !== 0xcc
+			) {
+				return {
+					width: file.readUInt16BE(offset + 7),
+					height: file.readUInt16BE(offset + 5),
+				};
+			}
+
+			offset += 2 + length;
+		}
+	}
+}
+
+async function imageSizeAttributes(filename: string): Promise<string> {
+	try {
+		const dimensions = await getImageDimensions(filename);
+		return dimensions ? ` width="${dimensions.width}" height="${dimensions.height}"` : "";
+	} catch {
+		return "";
+	}
+}
+
 async function downloadImageBlock(
 	block: CardBlockBase & { type: "image" },
 	blockId: string,
@@ -542,8 +592,9 @@ async function downloadImageBlock(
 	}
 
 	const caption = concatenateText(block.image.caption);
+	const sizeAttributes = await imageSizeAttributes(filename);
 	const html = `<figure id="${blockId}">
-      <img alt="${caption}" src="${settings.url(filename)}">
+      <img alt="${caption}" src="${settings.url(filename)}" loading="lazy" decoding="async"${sizeAttributes}>
       <figcaption>${caption}</figcaption>
     </figure>`;
 
@@ -660,7 +711,7 @@ async function blockToHtml(
 		} else if (block.image.type === "external") {
 			const caption = concatenateText(block.image.caption);
 			return `<figure id="${blockId}">
-        <img alt="${caption}" src="${block.image.external.url}">
+        <img alt="${caption}" src="${block.image.external.url}" loading="lazy" decoding="async">
         <figcaption>${caption}</figcaption>
       </figure>`;
 		} else {
