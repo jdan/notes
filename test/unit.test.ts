@@ -719,6 +719,25 @@ describe("downloadImage", () => {
 			if (fs.existsSync(dest)) fs.unlinkSync(dest);
 		}
 	});
+
+	test("returns undefined when image request fails", async () => {
+		const https = await import("https");
+		const spy = vi.spyOn(https.default, "get").mockImplementation(() => {
+			return {
+				on: vi.fn((event, callback) => {
+					if (event === "error") callback();
+				}),
+			} as any;
+		});
+
+		try {
+			await expect(
+				downloadImage("https://example.com/pic.png", "test-download-request-fail.image"),
+			).resolves.toBeUndefined();
+		} finally {
+			spy.mockRestore();
+		}
+	});
 });
 
 describe("blockToHtml", () => {

@@ -460,7 +460,7 @@ async function downloadImage(url: string, filenamePrefix: string): Promise<strin
 
 	if (!filename) {
 		return new Promise<string | undefined>((resolve) => {
-			https.get(url, (res: any) => {
+			const request = https.get(url, (res: any) => {
 				const ext = mimeTypes.extension(res.headers["content-type"] || "image/png");
 				const dest = `${filenamePrefix}.${ext}`;
 				const destStream = fs.createWriteStream(settings.output(dest));
@@ -473,6 +473,10 @@ async function downloadImage(url: string, filenamePrefix: string): Promise<strin
 						console.log("Image failed to write", dest);
 						resolve(undefined);
 					});
+			});
+			request.on("error", () => {
+				console.log("Image failed to download", url);
+				resolve(undefined);
 			});
 		});
 	} else {
