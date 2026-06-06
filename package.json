@@ -3,11 +3,7 @@
 		"typesync": "typesync",
 		"test": "vitest run --globals",
 		"typecheck": "tsc",
-		"watch:tsc": "tsc --watch --preserveWatchOutput",
-		"build": "tsx index.ts",
-		"watch:build": "nodemon --watch . --ignore build --exec tsx index.ts",
-		"watch:serve": "serve build",
-		"watch": "concurrently 'npm:watch:*'"
+		"build": "tsx index.ts"
 	},
 	"dependencies": {
 		"@notionhq/client": "^0.4.13",
@@ -33,11 +29,7 @@
 		"@types/mime-types": "^2.1.1",
 		"@types/node": "^17.0.8",
 		"@types/node-emoji": "^1.8.1",
-		"@types/nodemon": "^1.19.1",
 		"@types/prismjs": "^1.16.6",
-		"concurrently": "^7.0.0",
-		"nodemon": "^2.0.15",
-		"serve": "^13.0.2",
 		"tsx": "^4.20.5",
 		"typescript": "^6.0.3",
 		"typesync": "^0.8.0",
