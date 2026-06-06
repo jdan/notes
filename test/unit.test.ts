@@ -392,6 +392,39 @@ describe("textToHtml", () => {
 		);
 		expect(result).toBeUndefined();
 	});
+
+	test("unrecognized text type returns undefined", async () => {
+		const result = await textToHtml(
+			"page-1",
+			{
+				type: "unknown_type",
+				annotations,
+				plain_text: "",
+				href: null,
+			} as any,
+			pages,
+		);
+		expect(result).toBeUndefined();
+	});
+
+	test("backlink with favicon page renders emoji in link", async () => {
+		const favPages = [
+			{
+				id: "cd2cb8c2-dcc6-4da4-bb02-5fa71513b780",
+				title: "Test Page",
+				filename: "test-page.html",
+				favicon: "2764-fe0f.png",
+				blocks: [],
+			} as any,
+		];
+		const result = await textToHtml(
+			"source-id",
+			richText("link text", { link: { url: "/cd2cb8c2dcc64da4bb025fa71513b780" } }),
+			favPages,
+		);
+		expect(result).toContain('class="with-emoji"');
+		expect(result).toContain('alt=""');
+	});
 });
 
 describe("settings", () => {
@@ -1093,6 +1126,17 @@ describe("copyStaticAssets", () => {
 });
 
 describe("savePage", () => {
+	afterAll(() => {
+		const fs = require("fs");
+		const path = require("path");
+		const dir = settings.outputDir;
+		for (const f of fs.readdirSync(dir)) {
+			if (f.startsWith("test-") && f.endsWith(".html")) {
+				fs.unlinkSync(path.join(dir, f));
+			}
+		}
+	});
+
 	test("writes html file and returns null when publishToRss is false", async () => {
 		const fs = await import("fs");
 		const path = await import("path");
@@ -1169,6 +1213,58 @@ describe("savePage", () => {
 		const content = fs.readFileSync(dest, "utf8");
 		expect(content).toContain("mentioned in");
 		expect(content).toContain("other-ref");
+	});
+
+	test("renders heading icon when provided", async () => {
+		const fs = await import("fs");
+		const filename = "test-heading-icon.html";
+
+		await savePage(
+			{
+				id: "hi-page",
+				title: "Icon Page",
+				created: "2024-01-01T00:00:00.000Z",
+				favicon: "",
+				headingIcon: '<img width="32" height="32" alt="📝" src="icon.png" />',
+				content: "<p>Content</p>",
+				filename,
+				publishToRss: false,
+				ogImage: null,
+			},
+			{},
+			[],
+		);
+
+		const dest = settings.output(filename);
+		const content = fs.readFileSync(dest, "utf8");
+		expect(content).toContain("title-row");
+		expect(content).toContain("icon.png");
+	});
+
+	test("renders og:image when provided", async () => {
+		const fs = await import("fs");
+		const filename = "test-og-image.html";
+
+		await savePage(
+			{
+				id: "og-page",
+				title: "OG Page",
+				created: "2024-01-01T00:00:00.000Z",
+				favicon: "",
+				headingIcon: null,
+				content: "<p>OG</p>",
+				filename,
+				publishToRss: false,
+				ogImage: "custom-og.png",
+			},
+			{},
+			[],
+		);
+
+		const dest = settings.output(filename);
+		const content = fs.readFileSync(dest, "utf8");
+		expect(content).toContain("summary_large_image");
+		expect(content).toContain("custom-og.png");
 	});
 });
 
