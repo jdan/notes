@@ -1,4 +1,5 @@
 import https from "https";
+import os from "os";
 
 import { vi, describe, expect, test, beforeAll, beforeEach, afterAll } from "vitest";
 
@@ -28,6 +29,22 @@ import fs from "fs";
 import path from "path";
 
 import { downloadImage, saveFavicon, blockToHtml, settings } from "../index";
+
+const originalBuild = process.env.BUILD;
+const testBuildDir = fs.mkdtempSync(path.join(os.tmpdir(), "notes-download-"));
+
+beforeAll(() => {
+	process.env.BUILD = testBuildDir;
+});
+
+afterAll(() => {
+	if (originalBuild === undefined) {
+		delete process.env.BUILD;
+	} else {
+		process.env.BUILD = originalBuild;
+	}
+	fs.rmSync(testBuildDir, { force: true, recursive: true });
+});
 
 function cleanTestFiles() {
 	const dir = settings.outputDir;

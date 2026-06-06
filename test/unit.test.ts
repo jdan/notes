@@ -1,4 +1,8 @@
 // @ts-nocheck
+import fs from "fs";
+import os from "os";
+import path from "path";
+
 import { describe, expect, test, vi } from "vitest";
 
 import {
@@ -52,6 +56,22 @@ const page = {
 } as any;
 
 const pages = [page];
+
+const originalBuild = process.env.BUILD;
+const testBuildDir = fs.mkdtempSync(path.join(os.tmpdir(), "notes-unit-"));
+
+beforeAll(() => {
+	process.env.BUILD = testBuildDir;
+});
+
+afterAll(() => {
+	if (originalBuild === undefined) {
+		delete process.env.BUILD;
+	} else {
+		process.env.BUILD = originalBuild;
+	}
+	fs.rmSync(testBuildDir, { force: true, recursive: true });
+});
 
 describe("addDashes", () => {
 	test("formats a 32-char hex string with dashes", () => {
@@ -1229,9 +1249,6 @@ describe("blockToHtml", () => {
 });
 
 test("image/file block renders with cached download", async () => {
-	const fs = await import("fs");
-	const path = await import("path");
-
 	const block = {
 		id: "test-cached-image",
 		type: "image",
@@ -1245,12 +1262,12 @@ test("image/file block renders with cached download", async () => {
 	};
 
 	try {
-		fs.writeFileSync(path.join("build", "test-cached-image.image.png"), "fake-png");
+		fs.writeFileSync(settings.output("test-cached-image.image.png"), "fake-png");
 		const result = await blockToHtml(block as any, "page-1", pages);
 		expect(result).toContain("<figure");
 		expect(result).toContain("test-cached-image.image.png");
 	} finally {
-		const f = path.join("build", "test-cached-image.image.png");
+		const f = settings.output("test-cached-image.image.png");
 		if (fs.existsSync(f)) fs.unlinkSync(f);
 	}
 });

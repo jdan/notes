@@ -43,7 +43,8 @@ afterEach(() => {
 
 test("main builds pages and feed from Notion rows", async () => {
 	tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "notes-main-"));
-	process.env.BUILD = tmpRoot;
+	const outputDir = path.join(tmpRoot, "output");
+	process.env.BUILD = outputDir;
 	process.env.SQLITE_DB_FILE = path.join(tmpRoot, "db.sqlite3");
 	process.env.NOTION_SECRET = "secret_123";
 	process.env.NOTION_DATABASE_ID = "database_123";
@@ -59,6 +60,17 @@ test("main builds pages and feed from Notion rows", async () => {
 			Filename: { rich_text: [richText("main-test.html")] },
 			"og:image": { files: [] },
 			"Publish to RSS": { checkbox: true },
+		},
+	};
+	const olderPage = {
+		...page,
+		id: "22222222-2222-4222-8222-222222222222",
+		created_time: "2023-01-01T00:00:00.000Z",
+		last_edited_time: "2024-01-01T00:00:00.000Z",
+		properties: {
+			...page.properties,
+			Name: { title: [richText("Older Main Test")] },
+			Filename: { rich_text: [richText("older-main-test.html")] },
 		},
 	};
 	const notion = {
@@ -81,15 +93,22 @@ test("main builds pages and feed from Notion rows", async () => {
 	};
 	forEachRowMock.mockImplementation(async (_config, callback) => {
 		await callback(page, notion);
+		await callback(olderPage, notion);
 	});
 
 	const { main } = await import("../index");
+	await main();
 	await main();
 
 	expect(forEachRowMock).toHaveBeenCalledWith(
 		{ token: "secret_123", database: "database_123" },
 		expect.any(Function),
 	);
-	expect(fs.readFileSync(path.join(tmpRoot, "main-test.html"), "utf8")).toContain("Built by main");
-	expect(fs.readFileSync(path.join(tmpRoot, "feed.atom"), "utf8")).toContain("Main Test");
+	expect(notion.blocks.children.list).toHaveBeenCalledTimes(2);
+	expect(fs.existsSync(outputDir)).toBe(true);
+	expect(fs.readFileSync(path.join(outputDir, "main-test.html"), "utf8")).toContain(
+		"Built by main",
+	);
+	expect(fs.readFileSync(path.join(outputDir, "feed.atom"), "utf8")).toContain("Main Test");
+	expect(fs.readFileSync(path.join(outputDir, "feed.atom"), "utf8")).toContain("Older Main Test");
 });
