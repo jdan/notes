@@ -23,12 +23,12 @@ config({
 
 const fsPromises = fs.promises;
 
-// Set to the block ID to debug it
-const DEBUG = null;
-// const DEBUG = "fe053dd4-76c3-4ed6-8137-24b7e319599c";
-
 type Block = Extract<GetBlockResponse, { type: string }>;
 type RichText = Extract<Block, { type: "paragraph" }>["paragraph"]["text"][number];
+type BuildOptions = {
+	debugPageId?: string;
+	logger?: Pick<Console, "log">;
+};
 type RecursiveBranch<Branch, Leaf = never> = Branch & {
 	children: Array<Leaf | RecursiveBranch<Branch, Leaf>>;
 };
@@ -491,9 +491,10 @@ async function blockToHtml(
 	block: CardBlock,
 	pageId: string,
 	allPages: CardPage[],
+	options: BuildOptions = {},
 ): Promise<string | undefined> {
-	if (pageId === DEBUG) {
-		console.log("[DEBUG]", block.type, block.id);
+	if (pageId === options.debugPageId) {
+		(options.logger || console).log("[DEBUG]", block.type, block.id);
 	}
 
 	const textToHtml_ = async (texts: RichText[]) => {
@@ -502,7 +503,7 @@ async function blockToHtml(
 	};
 	const blockId = "b" + block.id.replace(/-/g, "").slice(0, 8);
 	const children = await Promise.all(
-		block.children.map((block: CardBlock) => blockToHtml(block, pageId, allPages)),
+		block.children.map((block: CardBlock) => blockToHtml(block, pageId, allPages, options)),
 	);
 
 	if (block.type === "bulleted_list") {
@@ -743,11 +744,11 @@ const registerBacklink = (sourceId: string, destinationId: string) => {
 	}
 };
 
-async function renderPageContents(pages: CardPage[]) {
+async function renderPageContents(pages: CardPage[], options: BuildOptions = {}) {
 	await Promise.all(
 		pages.map(async (page) => {
 			const renderedBlocks = await Promise.all(
-				page.blocks.map(async (block) => blockToHtml(block, page.id, pages)),
+				page.blocks.map(async (block) => blockToHtml(block, page.id, pages, options)),
 			);
 			page.content = renderedBlocks.join("");
 		}),
@@ -816,7 +817,7 @@ async function saveEmojiFavicon(emoji: string) {
 	return basename;
 }
 
-const main = async function main() {
+const main = async function main(options: BuildOptions = {}) {
 	console.log("\n\n", new Date(), "\n", settings.info());
 
 	const pages: CardPage[] = [];
@@ -835,7 +836,7 @@ const main = async function main() {
 		},
 		async (page: any, notion: NotionClient) => {
 			const { id, created_time, last_edited_time, icon, properties } = page;
-			if (DEBUG && id !== DEBUG) {
+			if (options.debugPageId && id !== options.debugPageId) {
 				return;
 			}
 
@@ -843,7 +844,7 @@ const main = async function main() {
 			const existingPageHasUpdates =
 				new Date(last_edited_time).getTime() > new Date(existingPage?.updatedAt).getTime();
 
-			if (DEBUG || !existingPage || existingPageHasUpdates) {
+			if (options.debugPageId || !existingPage || existingPageHasUpdates) {
 				existingPage =
 					existingPage ||
 					PageModel.build({
@@ -905,7 +906,7 @@ const main = async function main() {
 		},
 	);
 
-	await renderPageContents(pages);
+	await renderPageContents(pages, options);
 
 	const favicon = await saveEmojiFavicon("👋");
 	const feed = new Feed({

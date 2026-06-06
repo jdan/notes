@@ -112,3 +112,69 @@ test("main builds pages and feed from Notion rows", async () => {
 	expect(fs.readFileSync(path.join(outputDir, "feed.atom"), "utf8")).toContain("Main Test");
 	expect(fs.readFileSync(path.join(outputDir, "feed.atom"), "utf8")).toContain("Older Main Test");
 });
+
+test("main can debug a single page without a hardcoded source toggle", async () => {
+	tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "notes-main-debug-"));
+	const outputDir = path.join(tmpRoot, "output");
+	process.env.BUILD = outputDir;
+	process.env.SQLITE_DB_FILE = path.join(tmpRoot, "db.sqlite3");
+	process.env.NOTION_SECRET = "secret_123";
+	process.env.NOTION_DATABASE_ID = "database_123";
+	process.env.BASE_URL = "/";
+
+	const debugPage = {
+		id: "33333333-3333-4333-8333-333333333333",
+		created_time: "2024-01-01T00:00:00.000Z",
+		last_edited_time: "2024-01-02T00:00:00.000Z",
+		icon: null,
+		properties: {
+			Name: { title: [richText("Debug Main Test")] },
+			Filename: { rich_text: [richText("debug-main-test.html")] },
+			"og:image": { files: [] },
+			"Publish to RSS": { checkbox: true },
+		},
+	};
+	const skippedPage = {
+		...debugPage,
+		id: "44444444-4444-4444-8444-444444444444",
+		properties: {
+			...debugPage.properties,
+			Name: { title: [richText("Skipped Main Test")] },
+			Filename: { rich_text: [richText("skipped-main-test.html")] },
+		},
+	};
+	const notion = {
+		blocks: {
+			children: {
+				list: vi.fn().mockResolvedValue({
+					results: [
+						{
+							id: "debug-block-1",
+							type: "paragraph",
+							has_children: false,
+							paragraph: { text: [richText("Built in debug mode")] },
+						},
+					],
+					has_more: false,
+					next_cursor: null,
+				}),
+			},
+		},
+	};
+	forEachRowMock.mockImplementation(async (_config, callback) => {
+		await callback(skippedPage, notion);
+		await callback(debugPage, notion);
+	});
+	const logger = { log: vi.fn() };
+
+	const { main } = await import("../index");
+	await main({ debugPageId: debugPage.id, logger });
+	await main({ debugPageId: debugPage.id, logger });
+
+	expect(notion.blocks.children.list).toHaveBeenCalledTimes(2);
+	expect(fs.readFileSync(path.join(outputDir, "debug-main-test.html"), "utf8")).toContain(
+		"Built in debug mode",
+	);
+	expect(fs.existsSync(path.join(outputDir, "skipped-main-test.html"))).toBe(false);
+	expect(logger.log).toHaveBeenCalledWith("[DEBUG]", "paragraph", "debug-block-1");
+});

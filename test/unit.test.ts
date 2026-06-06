@@ -716,6 +716,28 @@ describe("downloadImage", () => {
 });
 
 describe("blockToHtml", () => {
+	test("logs debug output to console by default", async () => {
+		const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+		try {
+			await blockToHtml(
+				{
+					id: "debug-block",
+					type: "paragraph",
+					has_children: false,
+					paragraph: { text: [richText("Debug block")] },
+					children: [],
+				} as any,
+				"page-1",
+				pages,
+				{ debugPageId: "page-1" },
+			);
+			expect(spy).toHaveBeenCalledWith("[DEBUG]", "paragraph", "debug-block");
+		} finally {
+			spy.mockRestore();
+		}
+	});
+
 	test("heading_1", async () => {
 		const result = await blockToHtml(
 			{
