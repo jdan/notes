@@ -454,7 +454,6 @@ const linkOfId = (allPages, id, args = {}) => {
  * @param {CardPage} page
  * @param {typeof backlinks} backlinks
  * @param {CardPage[]} allPages
- * @param {Feed} feed
  */
 async function savePage(
 	{
@@ -470,7 +469,6 @@ async function savePage(
 	},
 	backlinks,
 	allPages,
-	feed,
 ) {
 	const icon = favicon || (await saveEmojiFavicon("💡"));
 
@@ -541,7 +539,7 @@ async function savePage(
 	await fsPromises.writeFile(settings.output(filename), body);
 
 	if (publishToRss) {
-		feed.addItem({
+		return {
 			title,
 			id: settings.url(filename),
 			link: settings.url(filename),
@@ -555,8 +553,10 @@ async function savePage(
 			],
 			date: new Date(created),
 			image: metaImage,
-		});
+		};
 	}
+
+	return null;
 }
 
 /**
@@ -1107,10 +1107,21 @@ const main = async function main() {
 		},
 	});
 
-	await Promise.all([
-		...pages.map((page) => savePage(page, backlinks, pages, feed)),
-		copyStaticAssets(),
-	]);
+	const rssItems = await Promise.all(
+		pages.map((page) => savePage(page, backlinks, pages)),
+	);
+	await copyStaticAssets();
+
+	const publishedItems = [];
+	for (const item of rssItems) {
+		if (item) {
+			publishedItems.push(item);
+		}
+	}
+
+	publishedItems
+		.sort((a, b) => b.date.getTime() - a.date.getTime())
+		.forEach((item) => feed.addItem(item));
 
 	await fs.promises.writeFile(settings.output("feed.atom"), feed.atom1());
 };
