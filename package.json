@@ -4,7 +4,8 @@
 		"test": "vitest run --globals",
 		"typecheck": "tsc",
 		"watch:tsc": "tsc --watch --preserveWatchOutput",
-		"watch:build": "nodemon --watch . --ignore build index.js",
+		"build": "tsx index.ts",
+		"watch:build": "nodemon --watch . --ignore build --exec tsx index.ts",
 		"watch:serve": "serve build",
 		"watch": "concurrently 'npm:watch:*'"
 	},
@@ -23,8 +24,7 @@
 		"react": "^18.2.0",
 		"react-dom": "^18.2.0",
 		"sequelize": "^6.21.3",
-		"sqlite3": "^5.0.11",
-		"typescript": "^4.5.4"
+		"sqlite3": "^5.0.11"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.2.5",
@@ -38,6 +38,8 @@
 		"concurrently": "^7.0.0",
 		"nodemon": "^2.0.15",
 		"serve": "^13.0.2",
+		"tsx": "^4.20.5",
+		"typescript": "^6.0.3",
 		"typesync": "^0.8.0",
 		"vitest": "^0.34.6"
 	}

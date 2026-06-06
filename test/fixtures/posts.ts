@@ -17,7 +17,7 @@ const richText = (content, overrides = {}) => ({
 	href: overrides.link ? overrides.link.url : null,
 });
 
-module.exports = [
+export default [
 	{
 		id: "491f4275-7089-4fbc-b636-d0ec2539c743",
 		title: "Janet",

@@ -25,11 +25,52 @@ const DEBUG = null;
 const { Sequelize, Op, Model, DataTypes } = require("sequelize");
 const { Feed } = require("feed");
 
-/** @typedef {import('@notionhq/client').Client } NotionClient */
-/** @typedef {import('@notionhq/client/build/src/api-endpoints').GetBlockResponse } GetBlockResponse */
-/** @typedef {Extract<GetBlockResponse, { type: string }>} Block */
-/** @typedef {Extract<Block, {type: "paragraph"}>["paragraph"]["text"][number] } RichText */
-/** @typedef {import('@notionhq/client/build/src/api-endpoints').GetPageResponse } Page */
+import type { Client as NotionClient } from "@notionhq/client";
+import type { GetBlockResponse } from "@notionhq/client/build/src/api-endpoints";
+
+type Block = Extract<GetBlockResponse, { type: string }>;
+type RichText = Extract<
+	Block,
+	{ type: "paragraph" }
+>["paragraph"]["text"][number];
+type RecursiveBranch<Branch, Leaf = never> = Branch & {
+	children: Array<Leaf | RecursiveBranch<Branch, Leaf>>;
+};
+type RecursiveTree<Branch, Leaf = never> = RecursiveBranch<Branch, Leaf> | Leaf;
+type GroupedBlockType = "numbered_list_item" | "bulleted_list_item";
+interface CardBlockBase {
+	id: string;
+	type: Block["type"];
+	has_children: boolean;
+	children: CardBlock[];
+	[key: string]: any;
+}
+type BlockGroup<BlockType extends Block["type"], GroupType extends string> = {
+	id: string;
+	type: GroupType;
+	has_children: true;
+	children: Array<CardBlockBase & { type: BlockType }>;
+};
+type CardBlockGroup =
+	| BlockGroup<"numbered_list_item", "numbered_list">
+	| BlockGroup<"bulleted_list_item", "bulleted_list">;
+type CardBlock = CardBlockBase | CardBlockGroup;
+type CardPage = {
+	id: string;
+	headingIcon: string | null;
+	favicon: string;
+	title: string;
+	blocks: CardBlock[];
+	filename: string;
+	ogImage: string | null;
+	content?: string;
+	created: string;
+	publishToRss: boolean;
+};
+type PageIcon =
+	| { type: "file"; file: { url: string } }
+	| { type: "emoji"; emoji: string }
+	| null;
 
 loadLanguages([
 	"ocaml",
@@ -94,17 +135,11 @@ const settings = new (class Settings {
 		return process.env.SQLITE_DB_FILE || "db.sqlite3";
 	}
 
-	/**
-	 * @param {string} part
-	 */
-	url(part) {
+	url(part: string) {
 		return this.baseUrl + part;
 	}
 
-	/**
-	 * @param {string} part
-	 */
-	output(part) {
+	output(part: string) {
 		return path.join(this.outputDir, part);
 	}
 
@@ -126,75 +161,6 @@ const settings = new (class Settings {
 // This allows more straightforward rendering of ordered and unordered list
 // blocks.
 
-/**
- * A branch in a tree where each Branch can have children of either Leaf or more
- * recursive branches.
- *
- * @template Branch
- * @template [Leaf=never]
- * @typedef {Branch & { children: Array<Leaf | RecursiveBranch<Branch, Leaf>> }} RecursiveBranch
- */
-
-/**
- * A recursive tree with branches and leaves of different types.
- * This is used to define our recursive block structure.
- *
- * @template Branch
- * @template [Leaf=never]
- * @typedef {RecursiveBranch<Branch, Leaf> | Leaf} RecursiveTree
- */
-
-/**
- * A block-like object containing only blocks of type `BlockType`.
- *
- * @template {Block["type"]} BlockType
- * @template {string} GroupType
- * @typedef {{
-  id: string;
-  type: GroupType;
-  has_children: true;
-  children: Array<Extract<Block, { type: BlockType }> & { children: CardBlock[] }>;
- }} BlockGroup
- */
-
-/**
-  * All the block groups we make.
-  *
-  @typedef {
-    | BlockGroup<"numbered_list_item", "numbered_list">
-    | BlockGroup<"bulleted_list_item", "bulleted_list">
-  } CardBlockGroup
-  */
-
-/**
- * @typedef {CardBlockGroup["children"][number]["type"]} GroupedBlockType
- * @typedef {Exclude<Block, { type: GroupedBlockType }>} UngroupedBlock
- */
-
-/**
- * Our extended Block type that forms a recursive tree of blocks.
- *
- * @typedef {RecursiveTree<UngroupedBlock, CardBlockGroup> | CardBlockGroup["children"][number]} CardBlock
- */
-
-/**
- * A Card is based on a Notion page.
- *
- * @typedef {{
-    id: string,
-    headingIcon: string | null,
-    favicon: string,
-    title: string,
-    blocks: CardBlock[]
-    filename: string
-    ogImage: string | null
-    content?: string
-    created: string
-    publishToRss: boolean
-  }} CardPage
-*/
-
-/** @returns {Promise<any>} */
 async function getPageModel() {
 	const sequelize = new Sequelize({
 		dialect: "sqlite",
@@ -222,10 +188,7 @@ async function getPageModel() {
 	return PageModel;
 }
 
-/**
- * @param {string} id a UUID string
- */
-function addDashes(id) {
+function addDashes(id: string) {
 	return [
 		id.slice(0, 8),
 		id.slice(8, 12),
@@ -235,10 +198,7 @@ function addDashes(id) {
 	].join("-");
 }
 
-/**
- * @param {Array<RichText> | undefined} arr
- */
-function concatenateText(arr) {
+function concatenateText(arr: RichText[] | undefined) {
 	if (arr) {
 		return arr.map((i) => i.plain_text).join("");
 	} else {
@@ -246,16 +206,11 @@ function concatenateText(arr) {
 	}
 }
 
-/**
- * @param {string} str
- * @returns string
- */
-function sluggify(str) {
+function sluggify(str: string) {
 	return str.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 }
 
-/** @param {string} str containing an ISO *date*, eg yyyy-mm-dd */
-function longDate(str) {
+function longDate(str: string) {
 	// Notion date-only mentions should render as the stored calendar date, not UTC-shifted by local timezone.
 	// TODO: Add tests for date-only and datetime mention formatting.
 	const [year, month, day] = str.split("-").map((i) => parseInt(i));
@@ -272,22 +227,24 @@ function longDate(str) {
 	}).format(date);
 }
 
-/**
- * @param {string} pageId uuid of a page
- * @param { RichText } text
- * @param {any} allPages
- */
-async function textToHtml(pageId, text, allPages) {
+async function textToHtml(
+	pageId: string,
+	text: RichText,
+	allPages: CardPage[],
+) {
 	if (text.type === "text") {
 		const codeFriendly = text.text.content
 			.replace(/</g, "&lt;")
 			.replace(/>/g, "&gt;");
 
-		/** @type {Set<string>} */ const emojiToLoad = new Set([]);
-		let content = emoji.replace(codeFriendly, ({ emoji }) => {
-			emojiToLoad.add(emoji);
-			return emoji;
-		});
+		const emojiToLoad = new Set<string>([]);
+		let content = emoji.replace(
+			codeFriendly,
+			({ emoji }: { emoji: string }) => {
+				emojiToLoad.add(emoji);
+				return emoji;
+			},
+		);
 
 		await Promise.all(
 			[...emojiToLoad].map(async (emoji) => {
@@ -354,17 +311,17 @@ async function textToHtml(pageId, text, allPages) {
 				localDate.setMonth(month - 1);
 				localDate.setDate(day);
 
-				const options = /** @type {const} */ ({
+				const options = {
 					month: "long",
 					day: "numeric",
 					year: "numeric",
-				});
+				} as const;
 				const longDate = new Intl.DateTimeFormat("en-US", options).format(
 					localDate,
 				);
 				return `${longDate} - ${time}`;
 			}
-		} else if (/** @type {any} */ (text.mention).type === "template_mention") {
+		} else if ((text.mention as any).type === "template_mention") {
 			// Template mentions are a no-op
 			return "";
 		} else {
@@ -431,14 +388,11 @@ async function copyStaticAssets() {
 	);
 }
 
-/**
- *
- * @param {CardPage[]} allPages
- * @param {string} id
- * @param {{ overwriteTitle?: string }} args
- * @returns
- */
-const linkOfId = (allPages, id, args = {}) => {
+const linkOfId = (
+	allPages: CardPage[],
+	id: string,
+	args: { overwriteTitle?: string } = {},
+) => {
 	const page = allPages.find((entry) => entry.id === id);
 	if (page) {
 		return `<a href="${settings.url(page.filename)}"${
@@ -455,12 +409,6 @@ const linkOfId = (allPages, id, args = {}) => {
 	}
 };
 
-/**
- *
- * @param {CardPage} page
- * @param {typeof backlinks} backlinks
- * @param {CardPage[]} allPages
- */
 async function savePage(
 	{
 		id,
@@ -472,9 +420,9 @@ async function savePage(
 		filename,
 		publishToRss,
 		ogImage,
-	},
-	backlinks,
-	allPages,
+	}: CardPage,
+	backlinks: Backlinks,
+	allPages: CardPage[],
 ) {
 	const icon = favicon || (await saveEmojiFavicon("💡"));
 
@@ -486,8 +434,12 @@ async function savePage(
 		: "";
 
 	const script = await fsPromises.readFile(
-		path.join(__dirname, "public/script.js"),
+		path.join(__dirname, "public/script.ts"),
+		"utf8",
 	);
+	const { outputText: browserScript } = ts.transpileModule(script, {
+		compilerOptions: { target: ts.ScriptTarget.ES2016 },
+	});
 
 	const metaImage = ogImage ? settings.url(ogImage) : settings.ogImage;
 	const twitterCard = ogImage ? "summary_large_image" : "summary";
@@ -538,7 +490,7 @@ async function savePage(
         ${content}
         ${footer}
       </main>
-      <script>${script}</script>
+		<script>${browserScript}</script>
     </body>
     </html>
   `;
@@ -565,18 +517,16 @@ async function savePage(
 	return null;
 }
 
-/**
- * @param {string} url
- * @param {string} filenamePrefix
- * @returns Promise<string | undefined>
- */
-async function downloadImage(url, filenamePrefix) {
+async function downloadImage(
+	url: string,
+	filenamePrefix: string,
+): Promise<string | undefined> {
 	const files = await fsPromises.readdir(settings.outputDir);
-	let filename = files.find((name) => name.startsWith(filenamePrefix));
+	let filename = files.find((name: string) => name.startsWith(filenamePrefix));
 
 	if (!filename) {
-		return new Promise((resolve) => {
-			https.get(url, (res) => {
+		return new Promise<string | undefined>((resolve) => {
+			https.get(url, (res: any) => {
 				const ext = mimeTypes.extension(
 					res.headers["content-type"] || "image/png",
 				);
@@ -598,13 +548,10 @@ async function downloadImage(url, filenamePrefix) {
 	}
 }
 
-/**
- *
- * @param {Block & { type: "image" }} block
- * @param {string} blockId
- * @returns Promise<string | undefined>
- */
-async function downloadImageBlock(block, blockId) {
+async function downloadImageBlock(
+	block: CardBlockBase & { type: "image" },
+	blockId: string,
+): Promise<string | undefined> {
 	const filename = await downloadImage(
 		block.image.type === "file"
 			? block.image.file.url
@@ -625,26 +572,16 @@ async function downloadImageBlock(block, blockId) {
 	return html;
 }
 
-/**
- *
- * @param {CardBlock} block
- * @param {string} pageId
- * @param {CardPage[]} allPages
- * @returns {Promise<string | undefined>}
- */
-async function blockToHtml(block, pageId, allPages) {
-	/**
-	 * @param {RichText[]} texts
-	 * @returns
-	 */
+async function blockToHtml(
+	block: CardBlock,
+	pageId: string,
+	allPages: CardPage[],
+): Promise<string | undefined> {
 	if (pageId === DEBUG) {
 		console.log("[DEBUG]", block.type, block.id);
 	}
 
-	/**
-	 * @param {RichText[]} texts
-	 */
-	const textToHtml_ = async (texts) => {
+	const textToHtml_ = async (texts: RichText[]) => {
 		const converts = await Promise.all(
 			texts.map((text) => textToHtml(pageId, text, allPages)),
 		);
@@ -652,7 +589,9 @@ async function blockToHtml(block, pageId, allPages) {
 	};
 	const blockId = "b" + block.id.replace(/-/g, "").slice(0, 8);
 	const children = await Promise.all(
-		block.children.map((block) => blockToHtml(block, pageId, allPages)),
+		block.children.map((block: CardBlock) =>
+			blockToHtml(block, pageId, allPages),
+		),
 	);
 
 	if (block.type === "bulleted_list") {
@@ -716,7 +655,10 @@ async function blockToHtml(block, pageId, allPages) {
 	} else if (block.type === "code") {
 		const isPreview = /preview=true/.test(concatenateText(block.code.caption));
 		if (isPreview) {
-			return await renderPreview(pageId, block);
+			return await renderPreview(
+				pageId,
+				block as CardBlockBase & { type: "code" },
+			);
 		}
 
 		const hasCustomLanguage =
@@ -747,7 +689,10 @@ async function blockToHtml(block, pageId, allPages) {
 		});
 	} else if (block.type === "image") {
 		if (block.image.type === "file") {
-			return downloadImageBlock(block, blockId);
+			return downloadImageBlock(
+				block as CardBlockBase & { type: "image" },
+				blockId,
+			);
 		} else if (block.image.type === "external") {
 			const caption = concatenateText(block.image.caption);
 			return `<figure id="${blockId}">
@@ -806,11 +751,10 @@ async function blockToHtml(block, pageId, allPages) {
 	}
 }
 
-/**
- * @param {string} pageId
- * @param {Extract<Block, { type: "code" }>} block
- */
-async function renderPreview(pageId, block) {
+async function renderPreview(
+	pageId: string,
+	block: CardBlockBase & { type: "code" },
+) {
 	const code = concatenateText(block.code.text);
 	const language = block.code.language.toLowerCase();
 
@@ -837,23 +781,19 @@ async function renderPreview(pageId, block) {
 	}
 }
 
-/**
- * Group adjacent runs of `blocks` that have `type` into a new synthetic block
- * with type `result_type`. `blocks` is recursively mutated to have the grouping.
- *
- * @template {GroupedBlockType} BlockType
- * @template {CardBlockGroup["type"]} GroupType
- * @param {RecursiveTree<Block>[] | CardBlock[]} blocks
- * @param {BlockType} type
- * @param {GroupType} result_type
- * @returns {CardBlock[]}
- */
-function groupAdjacentBlocksRecursively(blocks, type, result_type) {
-	/** @typedef {BlockGroup<BlockType, GroupType>} ResultGroup */
-	/** @typedef {ResultGroup["children"][number]} BlockToGroup */
-	/** @type {CardBlock[]} */ let result = [];
-	/** @type {BlockToGroup[]} */ let currentList = [];
-	const blocksAsCardBlocks = /** @type {CardBlock[]} */ (blocks);
+function groupAdjacentBlocksRecursively<
+	BlockType extends GroupedBlockType,
+	GroupType extends CardBlockGroup["type"],
+>(
+	blocks: RecursiveTree<Block>[] | CardBlock[],
+	type: BlockType,
+	result_type: GroupType,
+): CardBlock[] {
+	type ResultGroup = BlockGroup<BlockType, GroupType>;
+	type BlockToGroup = ResultGroup["children"][number];
+	let result: CardBlock[] = [];
+	let currentList: BlockToGroup[] = [];
+	const blocksAsCardBlocks = blocks as CardBlock[];
 
 	blocks.forEach((block, i) => {
 		if (block.has_children) {
@@ -870,16 +810,16 @@ function groupAdjacentBlocksRecursively(blocks, type, result_type) {
 			// since there's no way to declare that { type: XXXX } is a discriminated
 			// union (it could always be declared as `string`).
 			// See https://stackoverflow.com/questions/50870423/discriminated-union-of-generic-type
-			currentList.push(/** @type {BlockToGroup} */ (block));
+			currentList.push(block as BlockToGroup);
 		} else {
 			if (currentList.length) {
-				/** @type {ResultGroup} */ const group = {
+				const group: ResultGroup = {
 					id: "p-" + currentList[0].id,
 					has_children: true,
 					type: result_type,
 					children: currentList,
 				};
-				result.push(/** @type {CardBlock} */ (group));
+				result.push(group as CardBlock);
 				currentList = [];
 			}
 
@@ -888,24 +828,22 @@ function groupAdjacentBlocksRecursively(blocks, type, result_type) {
 	});
 
 	if (currentList.length) {
-		/** @type {ResultGroup} */ const group = {
+		const group: ResultGroup = {
 			id: "p-" + currentList[0].id,
 			has_children: true,
 			type: result_type,
 			children: currentList,
 		};
-		result.push(/** @type {CardBlock} */ (group));
+		result.push(group as CardBlock);
 	}
 
 	return result;
 }
 
-/** @type {Record<string, string[]>} */
-const backlinks = {};
-const registerBacklink = (
-	/** @type {string} */ sourceId,
-	/** @type {string} */ destinationId,
-) => {
+type Backlinks = Record<string, string[]>;
+
+const backlinks: Backlinks = {};
+const registerBacklink = (sourceId: string, destinationId: string) => {
 	if (backlinks[destinationId]) {
 		backlinks[destinationId].push(sourceId);
 	} else {
@@ -913,10 +851,7 @@ const registerBacklink = (
 	}
 };
 
-/**
- * @param {CardPage[]} pages
- */
-async function renderPageContents(pages) {
+async function renderPageContents(pages: CardPage[]) {
 	await Promise.all(
 		pages.map(async (page) => {
 			const renderedBlocks = await Promise.all(
@@ -927,38 +862,31 @@ async function renderPageContents(pages) {
 	);
 }
 
-/**
- * @param {NotionClient} notion Notion API client
- * @param {string} id Notion page ID
- */
-async function getAllChildBlocks(notion, id) {
-	const blocks = [];
+async function getAllChildBlocks(notion: NotionClient, id: string) {
+	const blocks: GetBlockResponse[] = [];
 
-	let next_cursor = undefined;
+	let next_cursor: string | undefined = undefined;
 	let has_more = true;
-	/** @type {Array<GetBlockResponse>} */ let results;
+	let results: GetBlockResponse[];
 
 	while (has_more) {
-		({ results, has_more, next_cursor } = await notion.blocks.children.list({
+		const response = await notion.blocks.children.list({
 			block_id: id,
 			start_cursor: next_cursor || undefined,
-		}));
+		});
+		({ results, has_more } = response);
+		next_cursor = response.next_cursor || undefined;
 		blocks.push(...results);
 	}
 
 	return blocks;
 }
 
-/**
- *
- * @param {NotionClient} notion
- * @param {string} id
- * @returns
- */
-async function getChildren(notion, id) {
-	const blocks = /** @type {RecursiveTree<Block>[]} */ (
-		await getAllChildBlocks(notion, id)
-	);
+async function getChildren(notion: NotionClient, id: string) {
+	const blocks = (await getAllChildBlocks(
+		notion,
+		id,
+	)) as RecursiveTree<Block>[];
 	return Promise.all(
 		blocks.map(async (block) => {
 			if (block.has_children) {
@@ -971,12 +899,10 @@ async function getChildren(notion, id) {
 	);
 }
 
-/**
- * @param {string} pageId
- * @param {{type: "file", file: {url: string}} | {type: "emoji", emoji: string}} icon
- * @returns Promise<string>
- */
-async function saveFavicon(pageId, icon) {
+async function saveFavicon(
+	pageId: string,
+	icon: PageIcon,
+): Promise<string | undefined> {
 	if (icon && icon.type === "file") {
 		return await downloadImage(icon.file.url, `${pageId}.icon`);
 	} else if (icon && icon.type === "emoji") {
@@ -984,11 +910,7 @@ async function saveFavicon(pageId, icon) {
 	}
 }
 
-/**
- * @param {string} emoji Unicode emoji character
- * @returns Promise<string>
- */
-async function saveEmojiFavicon(emoji) {
+async function saveEmojiFavicon(emoji: string) {
 	const codepoints = emojiUnicode(emoji).split(" ").join("-");
 	const basename =
 		// TODO: unsure why we're looking for 31-, or why emoji-datasource has 0031-
@@ -1011,7 +933,7 @@ async function saveEmojiFavicon(emoji) {
 const main = async function main() {
 	console.log("\n\n", new Date(), "\n", settings.info());
 
-	/** @type {CardPage[]} */ const pages = [];
+	const pages: CardPage[] = [];
 	const PageModel = await getPageModel();
 
 	// Make sure settings.outputDir exists
@@ -1025,7 +947,7 @@ const main = async function main() {
 			token: settings.notionSecret,
 			database: settings.notionDatabaseId,
 		},
-		async (page, notion) => {
+		async (page: any, notion: NotionClient) => {
 			const { id, created_time, last_edited_time, icon, properties } = page;
 			if (DEBUG && id !== DEBUG) {
 				return;
@@ -1046,7 +968,7 @@ const main = async function main() {
 
 				const title = concatenateText(properties.Name.title);
 				const children = await getChildren(notion, id);
-				const favicon = await saveFavicon(id, icon);
+				const favicon = (await saveFavicon(id, icon)) || "";
 
 				// headingIcon is generated here so it can have the
 				// emoji character as its alt text.
@@ -1082,14 +1004,14 @@ const main = async function main() {
 					"bulleted_list",
 				);
 
-				const pageInstance = {
+				const pageInstance: CardPage = {
 					id,
 					headingIcon,
 					favicon,
 					title,
 					blocks,
 					filename,
-					ogImage,
+					ogImage: ogImage || null,
 					created: created_time,
 					publishToRss,
 				};
@@ -1160,8 +1082,4 @@ if (require.main === module) {
 	})();
 }
 
-module.exports = {
-	blockToHtml,
-	groupAdjacentBlocksRecursively,
-	renderPageContents,
-};
+export { blockToHtml, groupAdjacentBlocksRecursively, renderPageContents };

@@ -20,7 +20,7 @@ As a heads up, this barely works at all. It may not handle HTML escaping correct
 ```sh
 git clone https://github.com/jdan/cards.git
 npm i
-NOTION_SECRET=[your token here] NOTION_DATABASE_ID=[your id here] TWITTER_HANDLE=yourHandle  node index.js
+NOTION_SECRET=[your token here] NOTION_DATABASE_ID=[your id here] TWITTER_HANDLE=yourHandle npm run build
 npx serve build   # build/ contains everything you need
 # localhost:5000 now shows your cards
 ```
@@ -41,10 +41,10 @@ NOTION_DATABASE_ID=a3aa29a6b2f242d1b4cf86fb578a5eea
 Then to use the config, run:
 
 ```shell
-CONFIG=./recipes.env node index.js
+CONFIG=./recipes.env npm run build
 ```
 
-Take a look at the top 100 lines or so of index.js to see what env vars are available.
+Take a look at the top 100 lines or so of index.ts to see what env vars are available.
 
 ### developing
 
