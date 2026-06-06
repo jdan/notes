@@ -963,6 +963,8 @@ export {
 	concatenateText,
 	copyStaticAssets,
 	downloadImage,
+	getAllChildBlocks,
+	getChildren,
 	getPageModel,
 	groupAdjacentBlocksRecursively,
 	longDate,

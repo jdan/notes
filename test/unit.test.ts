@@ -1,11 +1,13 @@
 // @ts-nocheck
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import {
 	addDashes,
 	blockToHtml,
 	concatenateText,
 	copyStaticAssets,
+	getAllChildBlocks,
+	getChildren,
 	getPageModel,
 	groupAdjacentBlocksRecursively,
 	longDate,
@@ -526,9 +528,23 @@ describe("settings", () => {
 });
 
 describe("saveEmojiFavicon", () => {
+	const createdFiles: string[] = [];
+
+	afterAll(() => {
+		const fs = require("fs");
+		const path = require("path");
+		for (const f of createdFiles) {
+			const dest = path.join(settings.outputDir, f);
+			if (fs.existsSync(dest)) {
+				fs.unlinkSync(dest);
+			}
+		}
+	});
+
 	test("returns basename for known emoji", async () => {
 		const result = await saveEmojiFavicon("❤️");
 		expect(result).toBe("2764-fe0f.png");
+		createdFiles.push("2764-fe0f.png");
 	});
 
 	test("logs for emoji without datasource file", async () => {
@@ -539,6 +555,7 @@ describe("saveEmojiFavicon", () => {
 		}
 		const result = await saveEmojiFavicon("❤");
 		expect(result).toBe("2764.png");
+		createdFiles.push("2764.png");
 	});
 
 	test("copies emoji file when dest does not exist", async () => {
@@ -1288,5 +1305,102 @@ describe("getPageModel", () => {
 			}
 			process.env.SQLITE_DB_FILE = origDb;
 		}
+	});
+});
+
+describe("getAllChildBlocks", () => {
+	test("returns blocks from Notion API", async () => {
+		const mockNotion = {
+			blocks: {
+				children: {
+					list: vi.fn().mockResolvedValue({
+						results: [{ id: "a" }, { id: "b" }],
+						has_more: false,
+						next_cursor: null,
+					}),
+				},
+			},
+		};
+		const result = await getAllChildBlocks(mockNotion, "page-1");
+		expect(result).toHaveLength(2);
+		expect(mockNotion.blocks.children.list).toHaveBeenCalledWith({
+			block_id: "page-1",
+			start_cursor: undefined,
+		});
+	});
+
+	test("handles pagination", async () => {
+		const mockNotion = {
+			blocks: {
+				children: {
+					list: vi
+						.fn()
+						.mockResolvedValueOnce({
+							results: [{ id: "page1" }],
+							has_more: true,
+							next_cursor: "c2",
+						})
+						.mockResolvedValueOnce({
+							results: [{ id: "page2" }],
+							has_more: false,
+							next_cursor: null,
+						}),
+				},
+			},
+		};
+		const result = await getAllChildBlocks(mockNotion, "page-2");
+		expect(result).toHaveLength(2);
+		expect(result[0].id).toBe("page1");
+		expect(result[1].id).toBe("page2");
+	});
+});
+
+describe("getChildren", () => {
+	test("recursively fetches child blocks", async () => {
+		const mockList = vi
+			.fn()
+			.mockResolvedValueOnce({
+				results: [
+					{
+						id: "parent",
+						has_children: true,
+						type: "column_list",
+					},
+				],
+				has_more: false,
+				next_cursor: null,
+			})
+			.mockResolvedValueOnce({
+				results: [{ id: "child1", has_children: false, type: "column" }],
+				has_more: false,
+				next_cursor: null,
+			});
+
+		const mockNotion = {
+			blocks: { children: { list: mockList } },
+		};
+
+		const result = await getChildren(mockNotion, "root");
+		expect(result).toHaveLength(1);
+		expect(result[0].id).toBe("parent");
+		expect(result[0].children).toHaveLength(1);
+		expect(result[0].children[0].id).toBe("child1");
+	});
+
+	test("assigns empty children array to leaf blocks", async () => {
+		const mockNotion = {
+			blocks: {
+				children: {
+					list: vi.fn().mockResolvedValue({
+						results: [{ id: "leaf", has_children: false, type: "text" }],
+						has_more: false,
+						next_cursor: null,
+					}),
+				},
+			},
+		};
+		const result = await getChildren(mockNotion, "leaf-parent");
+		expect(result).toHaveLength(1);
+		expect(result[0].children).toEqual([]);
 	});
 });

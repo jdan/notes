@@ -74,6 +74,7 @@ describe("downloadImage", () => {
 
 describe("image/file block (downloadImageBlock)", () => {
 	beforeEach(() => cleanTestFiles());
+	afterAll(() => cleanTestFiles());
 
 	test("downloadImage returns undefined on error mock", async () => {
 		useErrorMock = true;
@@ -105,6 +106,9 @@ describe("image/file block (downloadImageBlock)", () => {
 });
 
 describe("saveFavicon", () => {
+	beforeAll(() => cleanTestFiles());
+	afterAll(() => cleanTestFiles());
+
 	test("downloads file icon from url", async () => {
 		useErrorMock = false;
 		const prefix = `test-favicon-${Date.now()}`;
