@@ -75,6 +75,38 @@ notes.jordanscales.com        # public site, points to Cloudflare Pages
 hooks.jordanscales.com        # webhook server, points to Hetzner
 ```
 
+#### Architecture overview
+
+```mermaid
+flowchart TD
+	Notion["Notion Publish button"] -->|"GET /webhook/notion?secret=..."| HooksDNS["hooks.jordanscales.com DNS"]
+	HooksDNS --> Hetzner["Hetzner server"]
+	Hetzner --> Proxy["kamal-proxy"]
+	Proxy --> Container["notes Docker container"]
+	Container --> Auth["server.ts validates WEBHOOK_SECRET"]
+	Auth --> Build["tsx index.ts builds from Notion"]
+	Build --> Cache["SQLite cache /data/db.sqlite3"]
+	Build --> Site["generated static site /app/site"]
+	Site --> Wrangler["wrangler pages deploy /app/site"]
+	Wrangler --> Pages["Cloudflare Pages project: notes"]
+	Pages --> Edge["Cloudflare edge"]
+	Reader["Reader browser"] -->|"https://notes.jordanscales.com"| NotesDNS["notes.jordanscales.com DNS"]
+	NotesDNS --> Edge
+	Edge --> Reader
+```
+
+When you click Publish, Notion requests `https://hooks.jordanscales.com/webhook/notion?secret=<WEBHOOK_SECRET>`. That hostname points to the Hetzner server, where `kamal-proxy` terminates and routes the request to the `notes` Docker container.
+
+`server.ts` authenticates the request using either the `secret` query parameter or the `x-webhook-secret` header. Invalid requests return `401`; valid requests start a build and immediately return a JSON response indicating that the build has started.
+
+The container runs the normal build entrypoint, `tsx index.ts`. The build reads Notion using `NOTION_SECRET` and `NOTION_DATABASE_ID`, uses the SQLite cache at `/data/db.sqlite3`, and writes static HTML and assets into `/app/site`. On the Hetzner host, that directory is backed by `/opt/notes/site`.
+
+After the build succeeds, `server.ts` deploys `/app/site` to Cloudflare Pages with Wrangler when `CLOUDFLARE_PAGES_PROJECT_NAME` is configured. Wrangler uses the Cloudflare values in `/opt/notes/.env`, including `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_PAGES_PROJECT_NAME`, and `CLOUDFLARE_PAGES_BRANCH`.
+
+Cloudflare creates a new Pages deployment for the `notes` project. Since deployments use branch `main`, Cloudflare treats the deployment as production and serves it through the custom domain `notes.jordanscales.com`.
+
+Readers visiting `https://notes.jordanscales.com/` hit Cloudflare Pages, not Hetzner. The Hetzner container still keeps and can serve a local generated copy as a fallback, but the intended public browsing path is Cloudflare edge.
+
 #### Cloudflare Pages setup
 
 Install dependencies locally if needed:
