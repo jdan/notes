@@ -189,32 +189,38 @@ const settings = new (class Settings {
     filename: string
     ogImage: string | null
     content?: string
+    created: string
+    publishToRss: boolean
   }} CardPage
 */
 
-const sequelize = new Sequelize({
-	dialect: "sqlite",
-	storage: settings.dbFile,
-	logging: false,
-});
+/** @returns {Promise<any>} */
+async function getPageModel() {
+	const sequelize = new Sequelize({
+		dialect: "sqlite",
+		storage: settings.dbFile,
+		logging: false,
+	});
 
-const Page = sequelize.define("page", {
-	id: {
-		type: DataTypes.STRING,
-		primaryKey: true,
-	},
-	body: {
-		type: DataTypes.JSON,
-	},
-	createdAt: {
-		type: DataTypes.DATE,
-	},
-	updatedAt: {
-		type: DataTypes.DATE,
-	},
-});
+	const PageModel = sequelize.define("page", {
+		id: {
+			type: DataTypes.STRING,
+			primaryKey: true,
+		},
+		body: {
+			type: DataTypes.JSON,
+		},
+		createdAt: {
+			type: DataTypes.DATE,
+		},
+		updatedAt: {
+			type: DataTypes.DATE,
+		},
+	});
 
-Page.sync();
+	await PageModel.sync();
+	return PageModel;
+}
 
 /**
  * @param {string} id a UUID string
@@ -358,7 +364,7 @@ async function textToHtml(pageId, text, allPages) {
 				);
 				return `${longDate} - ${time}`;
 			}
-		} else if (text.mention.type === "template_mention") {
+		} else if (/** @type {any} */ (text.mention).type === "template_mention") {
 			// Template mentions are a no-op
 			return "";
 		} else {
@@ -635,6 +641,9 @@ async function blockToHtml(block, pageId, allPages) {
 		console.log("[DEBUG]", block.type, block.id);
 	}
 
+	/**
+	 * @param {RichText[]} texts
+	 */
 	const textToHtml_ = async (texts) => {
 		const converts = await Promise.all(
 			texts.map((text) => textToHtml(pageId, text, allPages)),
@@ -797,6 +806,10 @@ async function blockToHtml(block, pageId, allPages) {
 	}
 }
 
+/**
+ * @param {string} pageId
+ * @param {Extract<Block, { type: "code" }>} block
+ */
 async function renderPreview(pageId, block) {
 	const code = concatenateText(block.code.text);
 	const language = block.code.language.toLowerCase();
@@ -901,6 +914,20 @@ const registerBacklink = (
 };
 
 /**
+ * @param {CardPage[]} pages
+ */
+async function renderPageContents(pages) {
+	await Promise.all(
+		pages.map(async (page) => {
+			const renderedBlocks = await Promise.all(
+				page.blocks.map(async (block) => blockToHtml(block, page.id, pages)),
+			);
+			page.content = renderedBlocks.join("");
+		}),
+	);
+}
+
+/**
  * @param {NotionClient} notion Notion API client
  * @param {string} id Notion page ID
  */
@@ -985,6 +1012,7 @@ const main = async function main() {
 	console.log("\n\n", new Date(), "\n", settings.info());
 
 	/** @type {CardPage[]} */ const pages = [];
+	const PageModel = await getPageModel();
 
 	// Make sure settings.outputDir exists
 	if (!fs.existsSync(settings.outputDir)) {
@@ -1003,7 +1031,7 @@ const main = async function main() {
 				return;
 			}
 
-			let existingPage = await Page.findByPk(id);
+			let existingPage = await PageModel.findByPk(id);
 			const existingPageHasUpdates =
 				new Date(last_edited_time).getTime() >
 				new Date(existingPage?.updatedAt).getTime();
@@ -1011,7 +1039,7 @@ const main = async function main() {
 			if (DEBUG || !existingPage || existingPageHasUpdates) {
 				existingPage =
 					existingPage ||
-					Page.build({
+					PageModel.build({
 						id,
 						createdAt: created_time,
 					});
@@ -1078,14 +1106,7 @@ const main = async function main() {
 		},
 	);
 
-	await Promise.all(
-		pages.map(async (page) => {
-			const renderedBlocks = await Promise.all(
-				page.blocks.map(async (block) => blockToHtml(block, page.id, pages)),
-			);
-			page.content = renderedBlocks.join("");
-		}),
-	);
+	await renderPageContents(pages);
 
 	const favicon = await saveEmojiFavicon("👋");
 	const feed = new Feed({
@@ -1121,16 +1142,26 @@ const main = async function main() {
 
 	publishedItems
 		.sort((a, b) => b.date.getTime() - a.date.getTime())
-		.forEach((item) => feed.addItem(item));
+		.forEach((item) => {
+			feed.addItem(item);
+		});
 
 	await fs.promises.writeFile(settings.output("feed.atom"), feed.atom1());
 };
 
-(async () => {
-	try {
-		await main();
-	} catch (error) {
-		console.error(error);
-		process.exit(1);
-	}
-})();
+if (require.main === module) {
+	(async () => {
+		try {
+			await main();
+		} catch (error) {
+			console.error(error);
+			process.exit(1);
+		}
+	})();
+}
+
+module.exports = {
+	blockToHtml,
+	groupAdjacentBlocksRecursively,
+	renderPageContents,
+};
