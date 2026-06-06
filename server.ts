@@ -85,8 +85,27 @@ async function serveStatic(req: http.IncomingMessage, res: http.ServerResponse, 
 			return;
 		}
 
+		const etag = `"${stat.mtimeMs.toString(36)}-${stat.size.toString(36)}"`;
+		if (req.headers["if-none-match"] === etag) {
+			res.writeHead(304);
+			res.end();
+			return;
+		}
+
+		const ext = path.extname(filepath).toLowerCase();
+		let cacheControl = "no-cache";
+		if (/\.(jpg|jpeg|gif|png|ttf|woff|woff2|ico|svg)$/.test(ext)) {
+			cacheControl = "public, max-age=604800, immutable";
+		} else if (/\.(css|js|json)$/.test(ext)) {
+			cacheControl = "public, max-age=3600, immutable";
+		} else if (/\.html$/.test(ext)) {
+			cacheControl = "no-cache";
+		}
+
 		res.writeHead(200, {
 			"Content-Type": mimeTypes.lookup(filepath) || "application/octet-stream",
+			"Cache-Control": cacheControl,
+			ETag: etag,
 		});
 		fs.createReadStream(filepath).pipe(res);
 	} catch (error) {
