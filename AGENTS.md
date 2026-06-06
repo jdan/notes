@@ -7,7 +7,6 @@
 - Test: `npm test`; focused snapshot test: `npx vitest run --globals test/render-snapshots.test.ts`.
 - Coverage: `npm run test:coverage` (`vitest run --globals --coverage`).
 - Build the site with `npm run build` (`tsx index.ts`), not `node index.js`.
-- Watch mode is `npm run watch`, which runs TypeScript watch, rebuild, and `serve build` concurrently.
 
 ## Runtime And Config
 

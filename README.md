@@ -44,12 +44,3 @@ CONFIG=./recipes.env npm run build
 ```
 
 Take a look at the top 100 lines or so of index.ts to see what env vars are available.
-
-### developing
-
-If you're working on improving this software, consider using `npm run watch`,
-which will re-build your site whenever any of this source code changes.
-
-```shell
-CONFIG=./recipes.env npm run watch
-```
