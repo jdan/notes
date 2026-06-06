@@ -250,6 +250,8 @@ function sluggify(str) {
 
 /** @param {string} str containing an ISO *date*, eg yyyy-mm-dd */
 function longDate(str) {
+	// Notion date-only mentions should render as the stored calendar date, not UTC-shifted by local timezone.
+	// TODO: Add tests for date-only and datetime mention formatting.
 	const [year, month, day] = str.split("-").map((i) => parseInt(i));
 
 	const date = new Date();
@@ -340,16 +342,21 @@ async function textToHtml(pageId, text, allPages) {
 				return longDate(start);
 			} else if (start) {
 				const [date, time] = start.slice(0, 16).split("T");
+				const [year, month, day] = date.split("-").map((i) => parseInt(i));
+				const localDate = new Date();
+				localDate.setFullYear(year);
+				localDate.setMonth(month - 1);
+				localDate.setDate(day);
 
 				const options = /** @type {const} */ ({
-					month: "short",
+					month: "long",
 					day: "numeric",
 					year: "numeric",
 				});
 				const longDate = new Intl.DateTimeFormat("en-US", options).format(
-					new Date(date),
+					localDate,
 				);
-				return `${longDate} – ${time}`;
+				return `${longDate} - ${time}`;
 			}
 		} else if (text.mention.type === "template_mention") {
 			// Template mentions are a no-op
