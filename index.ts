@@ -131,7 +131,15 @@ const settings = new (class Settings {
 	}
 
 	output(part: string) {
-		return path.join(this.outputDir, part);
+		const outputDir = path.resolve(this.outputDir);
+		const outputPath = path.resolve(outputDir, part);
+		const relativePath = path.relative(outputDir, outputPath);
+
+		if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+			throw new Error(`Output path escapes build directory: ${part}`);
+		}
+
+		return outputPath;
 	}
 
 	info() {

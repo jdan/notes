@@ -521,6 +521,16 @@ describe("settings", () => {
 		restore();
 	});
 
+	test("output rejects paths outside outputDir", () => {
+		const restore = save("BUILD");
+		process.env.BUILD = "/tmp/custom-build";
+		expect(() => settings.output("../outside.html")).toThrow("Output path escapes build directory");
+		expect(() => settings.output("/tmp/outside.html")).toThrow(
+			"Output path escapes build directory",
+		);
+		restore();
+	});
+
 	test("notionSecret throws when missing", () => {
 		const restore = save("NOTION_SECRET");
 		delete process.env.NOTION_SECRET;
@@ -1379,6 +1389,26 @@ describe("savePage", () => {
 		expect(content).toContain("<p>Hello</p>");
 		expect(content).toContain('"prismCoy":"/prefix/prism-coy.css"');
 		expect(content).toContain('"prismTomorrow":"/prefix/prism-tomorrow.css"');
+	});
+
+	test("rejects filenames outside the output directory", async () => {
+		await expect(
+			savePage(
+				{
+					id: "unsafe-id",
+					title: "Unsafe",
+					created: "2024-01-01T00:00:00.000Z",
+					favicon: "",
+					headingIcon: null,
+					content: "<p>Hello</p>",
+					filename: "../unsafe.html",
+					publishToRss: false,
+					ogImage: null,
+				},
+				{},
+				[],
+			),
+		).rejects.toThrow("Output path escapes build directory");
 	});
 
 	test("returns rss item when publishToRss is true", async () => {
