@@ -3,6 +3,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
+import sharp from "sharp";
 import { describe, expect, test, vi } from "vitest";
 
 import {
@@ -1364,19 +1365,67 @@ test("image/file block includes dimensions for cached PNG", async () => {
 		has_children: false,
 	};
 	const filename = "test-sized-image.image.png";
-	const png = Buffer.from([
-		0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
-		0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03,
-	]);
 
 	try {
-		fs.writeFileSync(settings.output(filename), png);
+		await sharp({
+			create: {
+				width: 2,
+				height: 3,
+				channels: 3,
+				background: "#ffffff",
+			},
+		})
+			.png()
+			.toFile(settings.output(filename));
 		const result = await blockToHtml(block as any, "page-1", pages);
 		expect(result).toContain('src="/test-sized-image.image.png"');
 		expect(result).toContain('width="2" height="3"');
 	} finally {
-		const f = settings.output(filename);
-		if (fs.existsSync(f)) fs.unlinkSync(f);
+		for (const f of fs.readdirSync(settings.outputDir)) {
+			if (f.startsWith("test-sized-image.image.")) fs.unlinkSync(settings.output(f));
+		}
+	}
+});
+
+test("image/file block renders responsive optimized sources", async () => {
+	const block = {
+		id: "test-responsive-image",
+		type: "image",
+		image: {
+			type: "file",
+			file: { url: "https://example.com/img.png", expiry_time: "" },
+			caption: [{ type: "text", text: { content: "Alt text" }, plain_text: "Alt text" }],
+		},
+		children: [],
+		has_children: false,
+	};
+	const filename = "test-responsive-image.image.png";
+
+	try {
+		await sharp({
+			create: {
+				width: 1000,
+				height: 500,
+				channels: 3,
+				background: "#ffffff",
+			},
+		})
+			.png()
+			.toFile(settings.output(filename));
+
+		const result = await blockToHtml(block as any, "page-1", pages);
+		expect(result).toContain("<picture>");
+		expect(result).toContain('type="image/avif"');
+		expect(result).toContain('type="image/webp"');
+		expect(result).toContain("test-responsive-image.image.w460.avif 460w");
+		expect(result).toContain("test-responsive-image.image.w920.webp 920w");
+		expect(result).toContain("test-responsive-image.image.w1000.webp 1000w");
+		expect(result).toContain('sizes="(max-width: 660px) calc(100vw - 40px), 460px"');
+		expect(result).toContain('width="1000" height="500"');
+	} finally {
+		for (const f of fs.readdirSync(settings.outputDir)) {
+			if (f.startsWith("test-responsive-image.image.")) fs.unlinkSync(settings.output(f));
+		}
 	}
 });
 

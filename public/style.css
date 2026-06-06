@@ -91,6 +91,10 @@ li figure {
 	margin: 16px 0;
 }
 
+figure picture {
+	display: block;
+}
+
 figure img {
 	width: 100%;
 	height: auto;

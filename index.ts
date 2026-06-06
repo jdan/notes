@@ -14,6 +14,7 @@ import forEachRow from "notion-for-each-row";
 import Prism from "prismjs";
 import loadLanguages from "prismjs/components/";
 import { DataTypes, Sequelize } from "sequelize";
+import sharp from "sharp";
 import ts from "typescript";
 
 config({
@@ -66,6 +67,14 @@ type CardPage = {
 };
 type PageIcon = { type: "file"; file: { url: string } } | { type: "emoji"; emoji: string } | null;
 type ImageDimensions = { width: number; height: number };
+type ResponsiveImageVariants = {
+	avif: string;
+	webp: string;
+	width: number;
+};
+
+const responsiveImageWidths = [460, 920, 1240];
+const responsiveImageSizes = "(max-width: 660px) calc(100vw - 40px), 460px";
 
 loadLanguages([
 	"ocaml",
@@ -504,7 +513,9 @@ async function savePage(
 
 async function downloadImage(url: string, filenamePrefix: string): Promise<string | undefined> {
 	const files = await fsPromises.readdir(settings.outputDir);
-	let filename = files.find((name: string) => name.startsWith(filenamePrefix));
+	let filename = files.find(
+		(name: string) => name.startsWith(`${filenamePrefix}.`) && !/\.w\d+\.(avif|webp)$/.test(name),
+	);
 
 	if (!filename) {
 		return new Promise<string | undefined>((resolve) => {
@@ -569,13 +580,62 @@ async function getImageDimensions(filename: string): Promise<ImageDimensions | u
 	}
 }
 
-async function imageSizeAttributes(filename: string): Promise<string> {
+function responsiveWidthsForImage(dimensions: ImageDimensions) {
+	const widths = responsiveImageWidths.filter((width) => width <= dimensions.width);
+	if (
+		!widths.length ||
+		dimensions.width < responsiveImageWidths[responsiveImageWidths.length - 1]
+	) {
+		widths.push(dimensions.width);
+	}
+
+	return [...new Set(widths)];
+}
+
+async function optimizeImageVariant(filename: string, width: number, format: "avif" | "webp") {
+	const parsed = path.parse(filename);
+	const optimizedFilename = `${parsed.name}.w${width}.${format}`;
+	const optimizedPath = settings.output(optimizedFilename);
+
+	if (!fs.existsSync(optimizedPath)) {
+		let pipeline = sharp(settings.output(filename)).resize({ width, withoutEnlargement: true });
+		pipeline = format === "avif" ? pipeline.avif({ quality: 55 }) : pipeline.webp({ quality: 85 });
+		await pipeline.toFile(optimizedPath);
+	}
+
+	return optimizedFilename;
+}
+
+async function responsiveImageVariants(
+	filename: string,
+	dimensions: ImageDimensions,
+): Promise<ResponsiveImageVariants[]> {
 	try {
-		const dimensions = await getImageDimensions(filename);
-		return dimensions ? ` width="${dimensions.width}" height="${dimensions.height}"` : "";
-	} catch {
+		return await Promise.all(
+			responsiveWidthsForImage(dimensions).map(async (width) => ({
+				width,
+				avif: await optimizeImageVariant(filename, width, "avif"),
+				webp: await optimizeImageVariant(filename, width, "webp"),
+			})),
+		);
+	} catch (error) {
+		console.log("Image failed to optimize", filename, error);
+		return [];
+	}
+}
+
+function imageSrcset(variants: ResponsiveImageVariants[], format: "avif" | "webp") {
+	return variants.map((variant) => `${settings.url(variant[format])} ${variant.width}w`).join(", ");
+}
+
+function renderImageSources(variants: ResponsiveImageVariants[]) {
+	if (!variants.length) {
 		return "";
 	}
+
+	return `<source type="image/avif" srcset="${imageSrcset(variants, "avif")}" sizes="${responsiveImageSizes}">
+        <source type="image/webp" srcset="${imageSrcset(variants, "webp")}" sizes="${responsiveImageSizes}">
+        `;
 }
 
 async function downloadImageBlock(
@@ -592,9 +652,18 @@ async function downloadImageBlock(
 	}
 
 	const caption = concatenateText(block.image.caption);
-	const sizeAttributes = await imageSizeAttributes(filename);
+	let sources = "";
+	const dimensions = await getImageDimensions(filename).catch(() => undefined);
+	const sizeAttributes = dimensions
+		? ` width="${dimensions.width}" height="${dimensions.height}"`
+		: "";
+	if (dimensions) {
+		sources = renderImageSources(await responsiveImageVariants(filename, dimensions));
+	}
 	const html = `<figure id="${blockId}">
-      <img alt="${caption}" src="${settings.url(filename)}" loading="lazy" decoding="async"${sizeAttributes}>
+      <picture>
+        ${sources}<img alt="${caption}" src="${settings.url(filename)}" loading="lazy" decoding="async"${sizeAttributes}>
+      </picture>
       <figcaption>${caption}</figcaption>
     </figure>`;
 
