@@ -553,6 +553,12 @@ describe("settings", () => {
 		const restore = save("BASE_URL");
 		process.env.BASE_URL = "/";
 		expect(settings.url("test.html")).toBe("/test.html");
+		process.env.BASE_URL = "/prefix";
+		expect(settings.url("test.html")).toBe("/prefix/test.html");
+		process.env.BASE_URL = "/prefix/";
+		expect(settings.url("test.html")).toBe("/prefix/test.html");
+		expect(settings.url("/test.html")).toBe("/prefix/test.html");
+		expect(settings.url("/")).toBe("/prefix/");
 		restore();
 	});
 

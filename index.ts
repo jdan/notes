@@ -126,7 +126,8 @@ const settings = new (class Settings {
 	}
 
 	url(part: string) {
-		return this.baseUrl + part;
+		const baseUrl = this.baseUrl.endsWith("/") ? this.baseUrl : `${this.baseUrl}/`;
+		return new URL(part.replace(/^\/+/, ""), new URL(baseUrl, "https://example.com")).pathname;
 	}
 
 	output(part: string) {
