@@ -16,6 +16,7 @@ import {
 	getPageModel,
 	groupAdjacentBlocksRecursively,
 	longDate,
+	pageMetaDescription,
 	registerBacklink,
 	saveEmojiFavicon,
 	saveFavicon,
@@ -105,6 +106,27 @@ describe("sluggify", () => {
 describe("longDate", () => {
 	test("formats a date-only string", () => {
 		expect(longDate("2024-01-15")).toBe("January 15, 2024");
+	});
+});
+
+describe("pageMetaDescription", () => {
+	test("strips tags, decodes rendered entities, and escapes attribute output", () => {
+		expect(
+			pageMetaDescription(
+				"Fallback",
+				'<p>Use &lt;code&gt; and <a href="/x">quoted "links" &amp; text</a>.</p>',
+			),
+		).toBe("Use &lt;code&gt; and quoted &quot;links&quot; &amp; text.");
+	});
+
+	test("falls back to the page title when content is empty", () => {
+		expect(pageMetaDescription("A Note", "")).toBe("Jordan's working notes: A Note");
+	});
+
+	test("limits descriptions to 160 characters", () => {
+		const description = pageMetaDescription("Long", `<p>${"a".repeat(200)}</p>`);
+		expect(description).toHaveLength(160);
+		expect(description.endsWith("...")).toBe(true);
 	});
 });
 

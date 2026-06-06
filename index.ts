@@ -205,6 +205,38 @@ function concatenateText(arr: RichText[] | undefined) {
 	}
 }
 
+function escapeHtmlAttribute(str: string) {
+	return str
+		.replace(/&/g, "&amp;")
+		.replace(/"/g, "&quot;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;");
+}
+
+function decodeBasicHtmlEntities(str: string) {
+	return str
+		.replace(/&quot;/g, '"')
+		.replace(/&#39;/g, "'")
+		.replace(/&lt;/g, "<")
+		.replace(/&gt;/g, ">")
+		.replace(/&amp;/g, "&");
+}
+
+function pageMetaDescription(title: string, content = "") {
+	const plainText = decodeBasicHtmlEntities(content.replace(/<[^>]*>/g, " "))
+		.replace(/\s+/g, " ")
+		.replace(/\s+([.,;:!?])/g, "$1")
+		.trim();
+	const description = plainText || `Jordan's working notes: ${title}`;
+	const maxLength = 160;
+	const truncated =
+		description.length > maxLength
+			? `${description.slice(0, maxLength - 3).trimEnd()}...`
+			: description;
+
+	return escapeHtmlAttribute(truncated);
+}
+
 function sluggify(str: string) {
 	return str.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 }
@@ -386,6 +418,7 @@ async function savePage(
 	});
 
 	const metaImage = ogImage ? settings.url(ogImage) : settings.ogImage;
+	const metaDescription = pageMetaDescription(title, content);
 	const twitterCard = ogImage ? "summary_large_image" : "summary";
 	const themeAssets = JSON.stringify({
 		prismCoy: settings.url("prism-coy.css"),
@@ -404,11 +437,14 @@ async function savePage(
       <link rel="alternate" type="application/atom+xml" title="Feed" href="https://notes.jordanscales.com/feed.atom">
 
       <meta property="og:title" content="${title}" />
+      <meta property="og:description" content="${metaDescription}" />
       <meta property="og:image" content="${metaImage}" />
+      <meta name="description" content="${metaDescription}" />
 
       <meta name="twitter:card" content="${twitterCard}" />
       <meta name="twitter:site" content="${settings.twitterHandle}" />
       <meta name="twitter:title" content="${title}" />
+      <meta name="twitter:description" content="${metaDescription}" />
 
       <link rel="stylesheet" href="${settings.url("style.css")}">
       <link rel="preload" href="${settings.url("prism-coy.css")}" as="style">
@@ -1006,6 +1042,7 @@ export {
 	groupAdjacentBlocksRecursively,
 	longDate,
 	main,
+	pageMetaDescription,
 	registerBacklink,
 	renderPageContents,
 	saveEmojiFavicon,
