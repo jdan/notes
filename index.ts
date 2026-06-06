@@ -379,6 +379,10 @@ async function savePage(
 
 	const metaImage = ogImage ? settings.url(ogImage) : settings.ogImage;
 	const twitterCard = ogImage ? "summary_large_image" : "summary";
+	const themeAssets = JSON.stringify({
+		prismCoy: settings.url("prism-coy.css"),
+		prismTomorrow: settings.url("prism-tomorrow.css"),
+	});
 
 	const body = `
     <!doctype html>
@@ -422,6 +426,7 @@ async function savePage(
         ${content}
         ${footer}
       </main>
+		<script>window.__themeAssets = ${themeAssets}</script>
 		<script>${browserScript}</script>
     </body>
     </html>

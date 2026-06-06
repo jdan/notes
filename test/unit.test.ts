@@ -1326,28 +1326,40 @@ describe("savePage", () => {
 		const fs = await import("fs");
 		const path = await import("path");
 		const filename = "test-save-page.html";
+		const restoreBaseUrl = process.env.BASE_URL;
+		process.env.BASE_URL = "/prefix";
 
-		await savePage(
-			{
-				id: "test-id",
-				title: "Test",
-				created: "2024-01-01T00:00:00.000Z",
-				favicon: "",
-				headingIcon: null,
-				content: "<p>Hello</p>",
-				filename,
-				publishToRss: false,
-				ogImage: null,
-			},
-			{},
-			[],
-		);
+		try {
+			await savePage(
+				{
+					id: "test-id",
+					title: "Test",
+					created: "2024-01-01T00:00:00.000Z",
+					favicon: "",
+					headingIcon: null,
+					content: "<p>Hello</p>",
+					filename,
+					publishToRss: false,
+					ogImage: null,
+				},
+				{},
+				[],
+			);
+		} finally {
+			if (restoreBaseUrl === undefined) {
+				delete process.env.BASE_URL;
+			} else {
+				process.env.BASE_URL = restoreBaseUrl;
+			}
+		}
 
 		const dest = settings.output(filename);
 		expect(fs.existsSync(dest)).toBe(true);
 		const content = fs.readFileSync(dest, "utf8");
 		expect(content).toContain("<title>Test</title>");
 		expect(content).toContain("<p>Hello</p>");
+		expect(content).toContain('"prismCoy":"/prefix/prism-coy.css"');
+		expect(content).toContain('"prismTomorrow":"/prefix/prism-tomorrow.css"');
 	});
 
 	test("returns rss item when publishToRss is true", async () => {

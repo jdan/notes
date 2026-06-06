@@ -1,5 +1,6 @@
 const stylesheet = document.getElementById("prism") as HTMLElement;
 const toggleBtn = document.getElementById("toggle-btn") as HTMLElement;
+const themeAssets = (window as any).__themeAssets;
 
 function setTheme(isDark: boolean) {
 	if (isDark) {
@@ -7,13 +8,13 @@ function setTheme(isDark: boolean) {
 		document.body.classList.add("dark");
 		toggleBtn.innerHTML = "☀️";
 		toggleBtn.setAttribute("aria-label", "enable light theme");
-		stylesheet.setAttribute("href", "/prism-tomorrow.css");
+		stylesheet.setAttribute("href", themeAssets.prismTomorrow);
 	} else {
 		localStorage.setItem("theme", "light");
 		document.body.classList.remove("dark");
 		toggleBtn.innerHTML = "🌙";
 		toggleBtn.setAttribute("aria-label", "enable dark theme");
-		stylesheet.setAttribute("href", "/prism-coy.css");
+		stylesheet.setAttribute("href", themeAssets.prismCoy);
 	}
 }
 
