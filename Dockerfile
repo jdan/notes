@@ -3,11 +3,11 @@ FROM node:20-bookworm-slim
 WORKDIR /app
 
 RUN apt-get update \
-	&& apt-get install -y --no-install-recommends g++ make pkg-config python3 libvips-dev \
+	&& apt-get install -y --no-install-recommends g++ make python3 \
 	&& rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
-RUN npm_config_build_from_source=true npm ci
+RUN npm ci
 
 COPY . ./
 
