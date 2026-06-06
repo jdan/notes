@@ -5,9 +5,14 @@ import {
 	addDashes,
 	blockToHtml,
 	concatenateText,
+	copyStaticAssets,
+	getPageModel,
 	groupAdjacentBlocksRecursively,
 	longDate,
 	registerBacklink,
+	saveEmojiFavicon,
+	savePage,
+	settings,
 	sluggify,
 	textToHtml,
 } from "../index";
@@ -115,6 +120,64 @@ describe("groupAdjacentBlocksRecursively", () => {
 		expect(result[0].type).toBe("numbered_list");
 		expect((result[0] as any).children[0].children).toHaveLength(1);
 	});
+
+	test("handles non-list blocks between list items", () => {
+		const blocks = [
+			{
+				id: "a",
+				type: "numbered_list_item",
+				has_children: false,
+				children: [],
+				numbered_list_item: { text: [] },
+			},
+			{ id: "b", type: "paragraph", has_children: false, children: [], paragraph: { text: [] } },
+			{
+				id: "c",
+				type: "numbered_list_item",
+				has_children: false,
+				children: [],
+				numbered_list_item: { text: [] },
+			},
+		];
+		const result = groupAdjacentBlocksRecursively(
+			blocks as any,
+			"numbered_list_item",
+			"numbered_list",
+		);
+		expect(result).toHaveLength(3);
+		expect(result[0].type).toBe("numbered_list");
+		expect(result[1].type).toBe("paragraph");
+		expect(result[2].type).toBe("numbered_list");
+	});
+
+	test("creates trailing group for list items at end", () => {
+		const blocks = [
+			{ id: "a", type: "paragraph", has_children: false, children: [], paragraph: { text: [] } },
+			{
+				id: "b",
+				type: "bulleted_list_item",
+				has_children: false,
+				children: [],
+				bulleted_list_item: { text: [] },
+			},
+			{
+				id: "c",
+				type: "bulleted_list_item",
+				has_children: false,
+				children: [],
+				bulleted_list_item: { text: [] },
+			},
+		];
+		const result = groupAdjacentBlocksRecursively(
+			blocks as any,
+			"bulleted_list_item",
+			"bulleted_list",
+		);
+		expect(result).toHaveLength(2);
+		expect(result[0].type).toBe("paragraph");
+		expect(result[1].type).toBe("bulleted_list");
+		expect((result[1] as any).children).toHaveLength(2);
+	});
 });
 
 describe("textToHtml", () => {
@@ -205,6 +268,21 @@ describe("textToHtml", () => {
 		expect(result).toBe("[12345678-9012-3456-7890-123456789012]");
 	});
 
+	test("backlink respects BASE_URL env", async () => {
+		const orig = process.env.BASE_URL;
+		process.env.BASE_URL = "/prefix/";
+		try {
+			const result = await textToHtml(
+				"source-id",
+				richText("link text", { link: { url: "/cd2cb8c2dcc64da4bb025fa71513b780" } }),
+				pages,
+			);
+			expect(result).toContain('href="/prefix/test-page.html"');
+		} finally {
+			process.env.BASE_URL = orig;
+		}
+	});
+
 	test("page mention", async () => {
 		const result = await textToHtml(
 			"source-id",
@@ -293,6 +371,154 @@ describe("textToHtml", () => {
 		const result = await textToHtml("page-1", richText("<script>alert('xss')</script>"), pages);
 		expect(result).not.toContain("<script>");
 		expect(result).toContain("&lt;script&gt;");
+	});
+
+	test("emoji in text is replaced with img tag", async () => {
+		const result = await textToHtml("page-1", richText("hello ❤️ world"), pages);
+		expect(result).toBe('hello <img class="emoji" alt="❤️" src="2764-fe0f.png" /> world');
+	});
+
+	test("unrecognized mention type returns undefined", async () => {
+		const result = await textToHtml(
+			"page-1",
+			{
+				type: "mention",
+				mention: { type: "user" },
+				annotations,
+				plain_text: "@user",
+				href: null,
+			} as any,
+			pages,
+		);
+		expect(result).toBeUndefined();
+	});
+});
+
+describe("settings", () => {
+	const save = (key: string) => {
+		const v = process.env[key];
+		return () => {
+			process.env[key] = v;
+		};
+	};
+
+	test("twitterHandle", () => {
+		const restore = save("TWITTER_HANDLE");
+		process.env.TWITTER_HANDLE = "@test";
+		expect(settings.twitterHandle).toBe("@test");
+		delete process.env.TWITTER_HANDLE;
+		expect(settings.twitterHandle).toBe("jdan");
+		restore();
+	});
+
+	test("ogImage", () => {
+		const restore = save("OG_IMAGE");
+		process.env.OG_IMAGE = "https://example.com/img.png";
+		expect(settings.ogImage).toBe("https://example.com/img.png");
+		delete process.env.OG_IMAGE;
+		expect(settings.ogImage).toBe("https://notes.jordanscales.com/me.png");
+		restore();
+	});
+
+	test("baseUrl", () => {
+		const restore = save("BASE_URL");
+		process.env.BASE_URL = "/prefix/";
+		expect(settings.baseUrl).toBe("/prefix/");
+		delete process.env.BASE_URL;
+		expect(settings.baseUrl).toBe("/");
+		restore();
+	});
+
+	test("dbFile defaults", () => {
+		const restore = save("SQLITE_DB_FILE");
+		delete process.env.SQLITE_DB_FILE;
+		expect(settings.dbFile).toBe("db.sqlite3");
+		restore();
+	});
+
+	test("notionSecret throws when missing", () => {
+		const restore = save("NOTION_SECRET");
+		delete process.env.NOTION_SECRET;
+		expect(() => settings.notionSecret).toThrow("Missing NOTION_SECRET");
+		restore();
+	});
+
+	test("notionSecret returns when set", () => {
+		const restore = save("NOTION_SECRET");
+		process.env.NOTION_SECRET = "secret_123";
+		expect(settings.notionSecret).toBe("secret_123");
+		restore();
+	});
+
+	test("notionDatabaseId throws when missing", () => {
+		const restore = save("NOTION_DATABASE_ID");
+		delete process.env.NOTION_DATABASE_ID;
+		expect(() => settings.notionDatabaseId).toThrow("Missing NOTION_DATABASE_ID");
+		restore();
+	});
+
+	test("notionDatabaseId returns when set", () => {
+		const restore = save("NOTION_DATABASE_ID");
+		process.env.NOTION_DATABASE_ID = "db_123";
+		expect(settings.notionDatabaseId).toBe("db_123");
+		restore();
+	});
+
+	test("url method", () => {
+		const restore = save("BASE_URL");
+		process.env.BASE_URL = "/";
+		expect(settings.url("test.html")).toBe("/test.html");
+		restore();
+	});
+
+	test("info returns correct object", () => {
+		const restore1 = save("BASE_URL");
+		const restore2 = save("NOTION_DATABASE_ID");
+		const restore3 = save("TWITTER_HANDLE");
+		const restore4 = save("OG_IMAGE");
+		process.env.BASE_URL = "/";
+		process.env.NOTION_DATABASE_ID = "db_123";
+		process.env.TWITTER_HANDLE = "@t";
+		process.env.OG_IMAGE = "https://example.com/og.png";
+		const result = settings.info();
+		expect(result.baseUrl).toBe("/");
+		expect(result.notionDatabaseId).toBe("db_123");
+		expect(result.twitterHandle).toBe("@t");
+		expect(result.ogImage).toBe("https://example.com/og.png");
+		restore1();
+		restore2();
+		restore3();
+		restore4();
+	});
+});
+
+describe("saveEmojiFavicon", () => {
+	test("returns basename for known emoji", async () => {
+		const result = await saveEmojiFavicon("❤️");
+		expect(result).toBe("2764-fe0f.png");
+	});
+
+	test("logs for emoji without datasource file", async () => {
+		const fs = await import("fs");
+		const dest = settings.output("2764.png");
+		if (!fs.existsSync(dest)) {
+			fs.writeFileSync(dest, "");
+		}
+		const result = await saveEmojiFavicon("❤");
+		expect(result).toBe("2764.png");
+	});
+
+	test("copies emoji file when dest does not exist", async () => {
+		const fs = await import("fs");
+		const dest = settings.output("2764-fe0f.png");
+
+		const exists = fs.existsSync(dest);
+		if (exists) {
+			fs.unlinkSync(dest);
+		}
+		const result = await saveEmojiFavicon("❤️");
+		expect(result).toBe("2764-fe0f.png");
+		expect(fs.existsSync(dest)).toBe(true);
 	});
 });
 
@@ -688,5 +914,283 @@ describe("blockToHtml", () => {
 			pages,
 		);
 		expect(result).toContain("\\sum");
+	});
+
+	test("code with unrecognized language", async () => {
+		const result = await blockToHtml(
+			{
+				id: "aaa-bbb-ccc",
+				type: "code",
+				has_children: false,
+				code: {
+					caption: [],
+					language: "boguslang",
+					text: [richText("raw code")],
+				},
+				children: [],
+			} as any,
+			"page-1",
+			pages,
+		);
+		expect(result).toContain("raw code");
+	});
+
+	test("image with unrecognized type", async () => {
+		const result = await blockToHtml(
+			{
+				id: "aaa-bbb-ccc",
+				type: "image",
+				has_children: false,
+				image: { type: "garbage", caption: [] },
+				children: [],
+			} as any,
+			"page-1",
+			pages,
+		);
+		expect(result).toBeUndefined();
+	});
+
+	test("embed with non-val-town URL", async () => {
+		const result = await blockToHtml(
+			{
+				id: "aaa-bbb-ccc",
+				type: "embed",
+				has_children: false,
+				embed: { url: "https://example.com" },
+				children: [],
+			} as any,
+			"page-1",
+			pages,
+		);
+		expect(result).toBeUndefined();
+	});
+
+	test("video with non-youtube external URL", async () => {
+		const result = await blockToHtml(
+			{
+				id: "aaa-bbb-ccc",
+				type: "video",
+				has_children: false,
+				video: {
+					type: "external",
+					external: { url: "https://vimeo.com/123" },
+				},
+				children: [],
+			} as any,
+			"page-1",
+			pages,
+		);
+		expect(result).toBeUndefined();
+	});
+
+	test("unrecognized block type", async () => {
+		const result = await blockToHtml(
+			{
+				id: "aaa-bbb-ccc",
+				type: "garbage_block",
+				has_children: false,
+				children: [],
+			} as any,
+			"page-1",
+			pages,
+		);
+		expect(result).toBeUndefined();
+	});
+
+	test("code preview=true with html", async () => {
+		const result = await blockToHtml(
+			{
+				id: "aaa-bbb-ccc",
+				type: "code",
+				has_children: false,
+				code: {
+					caption: [richText("preview=true")],
+					language: "html",
+					text: [richText("<div>hello</div>")],
+				},
+				children: [],
+			} as any,
+			"page-1",
+			pages,
+		);
+		expect(result).toContain("<div>hello</div>");
+	});
+
+	test("code preview=true with typescript", async () => {
+		const result = await blockToHtml(
+			{
+				id: "aaa-bbb-ccc",
+				type: "code",
+				has_children: false,
+				code: {
+					caption: [richText("preview=true")],
+					language: "typescript",
+					text: [richText("const x: number = 1")],
+				},
+				children: [],
+			} as any,
+			"page-1",
+			pages,
+		);
+		expect(result).toContain("<script>");
+	});
+
+	test("code preview=true with unrecognized language", async () => {
+		const result = await blockToHtml(
+			{
+				id: "aaa-bbb-ccc",
+				type: "code",
+				has_children: false,
+				code: {
+					caption: [richText("preview=true")],
+					language: "python",
+					text: [richText("print('hi')")],
+				},
+				children: [],
+			} as any,
+			"page-1",
+			pages,
+		);
+		expect(result).toBeUndefined();
+	});
+});
+
+test("image/file block renders with cached download", async () => {
+	const fs = await import("fs");
+	const path = await import("path");
+
+	const block = {
+		id: "test-cached-image",
+		type: "image",
+		image: {
+			type: "file",
+			file: { url: "https://example.com/img.png", expiry_time: "" },
+			caption: [{ type: "text", text: { content: "Alt text" }, plain_text: "Alt text" }],
+		},
+		children: [],
+		has_children: false,
+	};
+
+	try {
+		fs.writeFileSync(path.join("build", "test-cached-image.image.png"), "fake-png");
+		const result = await blockToHtml(block as any, "page-1", pages);
+		expect(result).toContain("<figure");
+		expect(result).toContain("test-cached-image.image.png");
+	} finally {
+		const f = path.join("build", "test-cached-image.image.png");
+		if (fs.existsSync(f)) fs.unlinkSync(f);
+	}
+});
+
+describe("copyStaticAssets", () => {
+	test("copies asset files", async () => {
+		await copyStaticAssets();
+		const fs = await import("fs");
+		const path = await import("path");
+		const dest = settings.output("style.css");
+		expect(fs.existsSync(dest)).toBe(true);
+	});
+});
+
+describe("savePage", () => {
+	test("writes html file and returns null when publishToRss is false", async () => {
+		const fs = await import("fs");
+		const path = await import("path");
+		const filename = "test-save-page.html";
+
+		await savePage(
+			{
+				id: "test-id",
+				title: "Test",
+				created: "2024-01-01T00:00:00.000Z",
+				favicon: "",
+				headingIcon: null,
+				content: "<p>Hello</p>",
+				filename,
+				publishToRss: false,
+				ogImage: null,
+			},
+			{},
+			[],
+		);
+
+		const dest = settings.output(filename);
+		expect(fs.existsSync(dest)).toBe(true);
+		const content = fs.readFileSync(dest, "utf8");
+		expect(content).toContain("<title>Test</title>");
+		expect(content).toContain("<p>Hello</p>");
+	});
+
+	test("returns rss item when publishToRss is true", async () => {
+		const filename = "test-rss-page.html";
+
+		const result = await savePage(
+			{
+				id: "rss-id",
+				title: "RSS Test",
+				created: "2024-01-02T00:00:00.000Z",
+				favicon: "",
+				headingIcon: null,
+				content: "<p>RSS</p>",
+				filename,
+				publishToRss: true,
+				ogImage: null,
+			},
+			{},
+			[],
+		);
+
+		expect(result).not.toBeNull();
+		expect(result.title).toBe("RSS Test");
+		expect(result.author).toHaveLength(1);
+	});
+
+	test("renders footer with backlinks", async () => {
+		const fs = await import("fs");
+		const filename = "test-backlinks.html";
+
+		await savePage(
+			{
+				id: "bl-page",
+				title: "Backlinks",
+				created: "2024-01-01T00:00:00.000Z",
+				favicon: "",
+				headingIcon: null,
+				content: "<p>Hello</p>",
+				filename,
+				publishToRss: false,
+				ogImage: null,
+			},
+			{ "bl-page": ["other-ref"] },
+			[],
+		);
+
+		const dest = settings.output(filename);
+		const content = fs.readFileSync(dest, "utf8");
+		expect(content).toContain("mentioned in");
+		expect(content).toContain("other-ref");
+	});
+});
+
+describe("getPageModel", () => {
+	test("creates and syncs a page model", async () => {
+		const path = require("path");
+		const os = require("os");
+		const origDb = process.env.SQLITE_DB_FILE;
+		const tmpDb = path.join(os.tmpdir(), `test-notes-${Date.now()}.sqlite`);
+		process.env.SQLITE_DB_FILE = tmpDb;
+		try {
+			const fs = await import("fs");
+			const PageModel = await getPageModel();
+			expect(PageModel).toBeDefined();
+			expect(fs.existsSync(tmpDb)).toBe(true);
+			await PageModel.sequelize.close();
+		} finally {
+			const fs = await import("fs");
+			if (fs.existsSync(tmpDb)) {
+				fs.unlinkSync(tmpDb);
+			}
+			process.env.SQLITE_DB_FILE = origDb;
+		}
 	});
 });
