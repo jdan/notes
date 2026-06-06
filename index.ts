@@ -61,6 +61,7 @@ type CardPage = {
 	ogImage: string | null;
 	content?: string;
 	created: string;
+	updated?: string;
 	publishToRss: boolean;
 };
 type PageIcon = { type: "file"; file: { url: string } } | { type: "emoji"; emoji: string } | null;
@@ -335,6 +336,14 @@ async function copyStaticAssets() {
 	return Promise.all(
 		assets.map(async (asset) => fsPromises.copyFile(asset, settings.output(path.basename(asset)))),
 	);
+}
+
+async function writeFileIfChanged(filename: string, content: string) {
+	if (fs.existsSync(filename) && (await fsPromises.readFile(filename, "utf8")) === content) {
+		return;
+	}
+
+	await fsPromises.writeFile(filename, content);
 }
 
 const linkOfId = (allPages: CardPage[], id: string, args: { overwriteTitle?: string } = {}) => {
@@ -891,6 +900,7 @@ const main = async function main(options: BuildOptions = {}) {
 					filename,
 					ogImage: ogImage || null,
 					created: created_time,
+					updated: last_edited_time,
 					publishToRss,
 				};
 
@@ -908,12 +918,26 @@ const main = async function main(options: BuildOptions = {}) {
 
 	await renderPageContents(pages, options);
 
+	const rssItems = await Promise.all(pages.map((page) => savePage(page, backlinks, pages)));
+	await copyStaticAssets();
+
+	const publishedItems = [];
+	for (const item of rssItems) {
+		if (item) {
+			publishedItems.push(item);
+		}
+	}
+	const publishedPages = pages.filter((page) => page.publishToRss);
+	const feedUpdated = new Date(
+		Math.max(0, ...publishedPages.map((page) => new Date(page.updated || page.created).getTime())),
+	);
 	const favicon = await saveEmojiFavicon("👋");
 	const feed = new Feed({
 		title: "notes.jordanscales.com",
 		description: "Jordan's working notes",
 		id: settings.url("/"),
 		link: settings.url(""),
+		updated: feedUpdated,
 		language: "en",
 		image: settings.ogImage,
 		favicon: settings.url(favicon),
@@ -928,23 +952,13 @@ const main = async function main(options: BuildOptions = {}) {
 		},
 	});
 
-	const rssItems = await Promise.all(pages.map((page) => savePage(page, backlinks, pages)));
-	await copyStaticAssets();
-
-	const publishedItems = [];
-	for (const item of rssItems) {
-		if (item) {
-			publishedItems.push(item);
-		}
-	}
-
 	publishedItems
 		.sort((a, b) => b.date.getTime() - a.date.getTime())
 		.forEach((item) => {
 			feed.addItem(item);
 		});
 
-	await fs.promises.writeFile(settings.output("feed.atom"), feed.atom1());
+	await writeFileIfChanged(settings.output("feed.atom"), feed.atom1());
 };
 
 if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {

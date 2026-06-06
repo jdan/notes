@@ -98,7 +98,12 @@ test("main builds pages and feed from Notion rows", async () => {
 
 	const { main } = await import("../index");
 	await main();
+	const feedPath = path.join(outputDir, "feed.atom");
+	const firstFeedStat = fs.statSync(feedPath);
+	const firstFeed = fs.readFileSync(feedPath, "utf8");
 	await main();
+	const secondFeedStat = fs.statSync(feedPath);
+	const secondFeed = fs.readFileSync(feedPath, "utf8");
 
 	expect(forEachRowMock).toHaveBeenCalledWith(
 		{ token: "secret_123", database: "database_123" },
@@ -109,8 +114,11 @@ test("main builds pages and feed from Notion rows", async () => {
 	expect(fs.readFileSync(path.join(outputDir, "main-test.html"), "utf8")).toContain(
 		"Built by main",
 	);
-	expect(fs.readFileSync(path.join(outputDir, "feed.atom"), "utf8")).toContain("Main Test");
-	expect(fs.readFileSync(path.join(outputDir, "feed.atom"), "utf8")).toContain("Older Main Test");
+	expect(secondFeed).toBe(firstFeed);
+	expect(secondFeedStat.mtimeMs).toBe(firstFeedStat.mtimeMs);
+	expect(secondFeed).toContain("<updated>2024-01-02T00:00:00.000Z</updated>");
+	expect(secondFeed).toContain("Main Test");
+	expect(secondFeed).toContain("Older Main Test");
 });
 
 test("main can debug a single page without a hardcoded source toggle", async () => {
