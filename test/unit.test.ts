@@ -6,6 +6,7 @@ import {
 	blockToHtml,
 	concatenateText,
 	copyStaticAssets,
+	downloadImage,
 	getAllChildBlocks,
 	getChildren,
 	getPageModel,
@@ -13,6 +14,7 @@ import {
 	longDate,
 	registerBacklink,
 	saveEmojiFavicon,
+	saveFavicon,
 	savePage,
 	settings,
 	sluggify,
@@ -433,7 +435,11 @@ describe("settings", () => {
 	const save = (key: string) => {
 		const v = process.env[key];
 		return () => {
-			process.env[key] = v;
+			if (v === undefined) {
+				delete process.env[key];
+			} else {
+				process.env[key] = v;
+			}
 		};
 	};
 
@@ -468,6 +474,30 @@ describe("settings", () => {
 		const restore = save("SQLITE_DB_FILE");
 		delete process.env.SQLITE_DB_FILE;
 		expect(settings.dbFile).toBe("db.sqlite3");
+		restore();
+	});
+
+	test("outputDir uses BUILD when set", () => {
+		const restore = save("BUILD");
+		process.env.BUILD = "/tmp/custom-build";
+		expect(settings.outputDir).toBe("/tmp/custom-build");
+		restore();
+	});
+
+	test("outputDir handles non-slash base URL", () => {
+		const restoreBuild = save("BUILD");
+		const restoreBaseUrl = save("BASE_URL");
+		delete process.env.BUILD;
+		process.env.BASE_URL = "notes";
+		expect(settings.outputDir).toMatch(/\/build$/);
+		restoreBuild();
+		restoreBaseUrl();
+	});
+
+	test("output joins paths inside outputDir", () => {
+		const restore = save("BUILD");
+		process.env.BUILD = "/tmp/custom-build";
+		expect(settings.output("page.html")).toBe("/tmp/custom-build/page.html");
 		restore();
 	});
 
@@ -569,6 +599,99 @@ describe("saveEmojiFavicon", () => {
 		const result = await saveEmojiFavicon("❤️");
 		expect(result).toBe("2764-fe0f.png");
 		expect(fs.existsSync(dest)).toBe(true);
+	});
+});
+
+describe("saveFavicon", () => {
+	test("returns undefined for missing icon", async () => {
+		await expect(saveFavicon("page-id", null)).resolves.toBeUndefined();
+	});
+
+	test("saves emoji icon", async () => {
+		await expect(saveFavicon("page-id", { type: "emoji", emoji: "❤️" })).resolves.toBe(
+			"2764-fe0f.png",
+		);
+	});
+
+	test("returns cached file icon", async () => {
+		const fs = await import("fs");
+		const path = await import("path");
+		const filename = "test-file-icon.icon.png";
+		const dest = path.join(settings.outputDir, filename);
+		try {
+			fs.writeFileSync(dest, "fake-png");
+			await expect(
+				saveFavicon("test-file-icon", {
+					type: "file",
+					file: { url: "https://example.com/icon.png" },
+				}),
+			).resolves.toBe(filename);
+		} finally {
+			if (fs.existsSync(dest)) fs.unlinkSync(dest);
+		}
+	});
+});
+
+describe("downloadImage", () => {
+	test("downloads image when no cached file exists", async () => {
+		const https = await import("https");
+		const fs = await import("fs");
+		const dest = settings.output("test-download.image.png");
+		const stream = {
+			on: vi.fn((event, callback) => {
+				if (event === "finish") callback();
+				return stream;
+			}),
+		};
+		const response = {
+			headers: { "content-type": "image/png" },
+			pipe: vi.fn(() => stream),
+		};
+		const spy = vi.spyOn(https.default, "get").mockImplementation((_url, callback) => {
+			callback(response as any);
+			return {} as any;
+		});
+
+		try {
+			if (fs.existsSync(dest)) fs.unlinkSync(dest);
+			await expect(
+				downloadImage("https://example.com/pic.png", "test-download.image"),
+			).resolves.toBe("test-download.image.png");
+			expect(response.pipe).toHaveBeenCalled();
+		} finally {
+			spy.mockRestore();
+			if (fs.existsSync(dest)) fs.unlinkSync(dest);
+		}
+	});
+
+	test("returns undefined when image write fails", async () => {
+		const https = await import("https");
+		const fs = await import("fs");
+		const dest = settings.output("test-download-fail.image.png");
+		const stream = {
+			on: vi.fn((event, callback) => {
+				if (event === "error") callback();
+				return stream;
+			}),
+		};
+		const response = {
+			headers: { "content-type": "image/png" },
+			pipe: vi.fn(() => stream),
+		};
+		const spy = vi.spyOn(https.default, "get").mockImplementation((_url, callback) => {
+			callback(response as any);
+			return {} as any;
+		});
+
+		try {
+			if (fs.existsSync(dest)) fs.unlinkSync(dest);
+			await expect(
+				downloadImage("https://example.com/pic.png", "test-download-fail.image"),
+			).resolves.toBeUndefined();
+		} finally {
+			spy.mockRestore();
+			if (fs.existsSync(dest)) fs.unlinkSync(dest);
+		}
 	});
 });
 

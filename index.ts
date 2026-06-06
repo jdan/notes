@@ -968,6 +968,7 @@ export {
 	getPageModel,
 	groupAdjacentBlocksRecursively,
 	longDate,
+	main,
 	registerBacklink,
 	renderPageContents,
 	saveEmojiFavicon,
