@@ -19,6 +19,7 @@
 
 - `public/script.ts` is not emitted as a standalone browser file; `index.ts` reads it and transpiles it inline into generated HTML.
 - If a refactor should not change generated pages, run `npm run build` and verify `git status --short -- build` stays empty.
+- Do not leave changes under `build/` while making codebase changes unless the user explicitly approves updating generated output. If `npm run build` changes `build/` unexpectedly, report it and leave the generated changes unstaged.
 
 ## Formatting And Linting
 
@@ -31,3 +32,4 @@
 - The snapshot test deep-clones fixtures, calls `renderPageContents`, and compares rendered HTML only; it does not hit Notion.
 - Unit tests live in `test/unit.test.ts` and test individual exported helpers (`blockToHtml`, `textToHtml`, `groupAdjacentBlocksRecursively`, `concatenateText`, etc.) and their various branch paths.
 - `coverage/` is gitignored; run `npm run test:coverage` to generate a report.
+- When coverage is relevant or `npm run test:coverage` is run, report the resulting statement, branch, function, and line coverage, and call out material changes from the previous result when known.
