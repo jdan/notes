@@ -20,12 +20,12 @@ const annotations = {
 	color: "default",
 };
 
-const richText = (content: string) => ({
+const richText = (content: string, link: { url: string } | null = null) => ({
 	type: "text",
-	text: { content, link: null },
+	text: { content, link },
 	annotations,
 	plain_text: content,
-	href: null,
+	href: link?.url || null,
 });
 
 let tmpRoot: string | null = null;
@@ -82,7 +82,9 @@ test("main builds pages and feed from Notion rows", async () => {
 							id: "block-1",
 							type: "paragraph",
 							has_children: false,
-							paragraph: { text: [richText("Built by main")] },
+							paragraph: {
+								text: [richText("Built by main", { url: "/22222222222242228222222222222222" })],
+							},
 						},
 					],
 					has_more: false,
@@ -114,6 +116,8 @@ test("main builds pages and feed from Notion rows", async () => {
 	expect(fs.readFileSync(path.join(outputDir, "main-test.html"), "utf8")).toContain(
 		"Built by main",
 	);
+	const olderPageHtml = fs.readFileSync(path.join(outputDir, "older-main-test.html"), "utf8");
+	expect(olderPageHtml.match(/href="\/main-test\.html"/g) || []).toHaveLength(1);
 	expect(secondFeed).toBe(firstFeed);
 	expect(secondFeedStat.mtimeMs).toBe(firstFeedStat.mtimeMs);
 	expect(secondFeed).toContain("<updated>2024-01-02T00:00:00.000Z</updated>");

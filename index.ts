@@ -764,6 +764,10 @@ const registerBacklink = (sourceId: string, destinationId: string) => {
 };
 
 async function renderPageContents(pages: CardPage[], options: BuildOptions = {}) {
+	for (const id of Object.keys(backlinks)) {
+		delete backlinks[id];
+	}
+
 	await Promise.all(
 		pages.map(async (page) => {
 			const renderedBlocks = await Promise.all(
