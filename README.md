@@ -47,7 +47,10 @@ Take a look at the top 100 lines or so of index.ts to see what env vars are avai
 
 ### notes deployment
 
-`notes.jordanscales.com` runs this app as a Docker container on the Hetzner server behind the existing `kamal-proxy`. It serves generated posts from a persistent directory and exposes a protected webhook that triggers a rebuild from Notion.
+The notes deployment has two roles:
+
+1. Hetzner runs this app as a Docker container behind the existing `kamal-proxy`. It receives the protected Notion webhook, runs builds, and keeps a local generated copy in `/opt/notes/site`.
+2. Cloudflare Pages serves the public static site at the edge. After a successful webhook build, the Hetzner container deploys `/opt/notes/site` to Cloudflare Pages when Cloudflare env vars are configured.
 
 Runtime state on Hetzner:
 
@@ -57,18 +60,76 @@ Runtime state on Hetzner:
 /opt/notes/data     # sqlite cache
 ```
 
-The Notion button should request:
+The Notion button should request the Hetzner webhook hostname, not the public Cloudflare Pages hostname:
 
 ```text
-https://notes.jordanscales.com/webhook/notion?secret=<WEBHOOK_SECRET>
+https://<webhook-host>/webhook/notion?secret=<WEBHOOK_SECRET>
 ```
 
 The server also accepts the secret in an `x-webhook-secret` header. Unauthenticated webhook calls return `401`.
 
+Recommended hostnames:
+
+```text
+notes.jordanscales.com        # public site, points to Cloudflare Pages
+hooks.jordanscales.com        # webhook server, points to Hetzner
+```
+
+#### Cloudflare Pages setup
+
+Install dependencies locally if needed:
+
+```shell
+npm install
+```
+
+Log in with Wrangler and create the Pages project once:
+
+```shell
+npx wrangler login
+npx wrangler pages project create notes --production-branch main
+```
+
+If the project already exists, skip the create command. The project name can be anything, but it must match `CLOUDFLARE_PAGES_PROJECT_NAME` below.
+
+Create a Cloudflare API token for Hetzner. It needs permission to deploy Pages for the account. Use the narrowest token Cloudflare allows for Pages deployments; if account selection is ambiguous, also set `CLOUDFLARE_ACCOUNT_ID`.
+
+Add these values to `/opt/notes/.env` on Hetzner:
+
+```shell
+CLOUDFLARE_API_TOKEN=<cloudflare-api-token>
+CLOUDFLARE_ACCOUNT_ID=<cloudflare-account-id> # optional unless Wrangler needs it
+CLOUDFLARE_PAGES_PROJECT_NAME=notes
+CLOUDFLARE_PAGES_BRANCH=main
+```
+
+Manual deploy from an already-built local `build/` directory:
+
+```shell
+CLOUDFLARE_PAGES_PROJECT_NAME=notes npm run deploy:cloudflare
+```
+
+Manual deploy from Hetzner's generated site directory:
+
+```shell
+ssh hetzner 'docker exec notes npx wrangler pages deploy /app/site --project-name notes --branch main'
+```
+
+#### DNS cutover
+
+1. Add `notes.jordanscales.com` as a custom domain on the Cloudflare Pages project.
+2. Point `notes.jordanscales.com` DNS to Cloudflare Pages using Cloudflare's generated target.
+3. Point a separate hostname, for example `hooks.jordanscales.com`, to the Hetzner server.
+4. Deploy the Hetzner service with `NOTES_WEBHOOK_HOST=hooks.jordanscales.com npm run deploy:notes`.
+5. Update the Notion webhook/button URL to `https://hooks.jordanscales.com/webhook/notion?secret=<WEBHOOK_SECRET>`.
+
+The Hetzner container still serves static files as a fallback, but readers should hit Cloudflare Pages after DNS cutover.
+
 Useful checks:
 
 ```shell
-curl https://notes.jordanscales.com/healthz
+curl -I https://notes.jordanscales.com/
+curl https://hooks.jordanscales.com/healthz
 ssh hetzner 'docker logs --tail 100 notes'
 ssh hetzner 'docker exec kamal-proxy kamal-proxy list'
 ```
@@ -79,4 +140,4 @@ To deploy source changes to the running `notes` service:
 npm run deploy:notes
 ```
 
-The deploy script syncs source to `/opt/notes`, preserves remote `.env`, rebuilds the Docker image, restarts the `notes` container, and re-registers the route with `kamal-proxy`. It intentionally does not use the nested `build/` git repo.
+The deploy script syncs source to `/opt/notes`, preserves remote `.env`, rebuilds the Docker image, restarts the `notes` container, and re-registers the route with `kamal-proxy`. It intentionally does not use the nested `build/` git repo. Set `NOTES_WEBHOOK_HOST` when deploying if the Hetzner route should use a hostname other than `notes.jordanscales.com`.

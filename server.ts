@@ -1,3 +1,4 @@
+import { spawn } from "child_process";
 import fs from "fs";
 import http from "http";
 import path from "path";
@@ -14,12 +15,19 @@ const fsPromises = fs.promises;
 
 type NotesServerOptions = {
 	build?: () => Promise<void>;
+	deploy?: () => Promise<void>;
 	outputDir?: string;
 	webhookPath?: string;
 	webhookSecret?: string;
 };
 
 type LastBuild = { startedAt: string; finishedAt?: string; error?: string } | null;
+
+type CloudflarePagesConfig = {
+	projectName?: string;
+	branch?: string;
+	outputDir: string;
+};
 
 function sendJson(res: http.ServerResponse, statusCode: number, body: unknown) {
 	res.writeHead(statusCode, { "Content-Type": "application/json" });
@@ -67,6 +75,30 @@ async function runBuild(
 async function mainBuild() {
 	const { main } = await import("./index");
 	await main();
+}
+
+function deployToCloudflarePages({ projectName, branch, outputDir }: CloudflarePagesConfig) {
+	if (!projectName) {
+		return Promise.resolve();
+	}
+
+	const args = ["wrangler", "pages", "deploy", outputDir, "--project-name", projectName];
+	if (branch) {
+		args.push("--branch", branch);
+	}
+
+	return new Promise<void>((resolve, reject) => {
+		const child = spawn("npx", args, { stdio: "inherit" });
+		child.on("error", reject);
+		child.on("close", (code) => {
+			if (code === 0) {
+				resolve();
+				return;
+			}
+
+			reject(new Error(`Cloudflare Pages deploy failed with exit code ${code}`));
+		});
+	});
 }
 
 async function serveStatic(
@@ -135,6 +167,20 @@ function createNotesServer(options: NotesServerOptions = {}) {
 	const webhookPath = options.webhookPath || process.env.WEBHOOK_PATH || "/webhook/notion";
 	const webhookSecret = options.webhookSecret ?? process.env.WEBHOOK_SECRET;
 	const build = options.build || mainBuild;
+	const deploy =
+		options.deploy ||
+		(options.build
+			? () => Promise.resolve()
+			: () =>
+					deployToCloudflarePages({
+						projectName: process.env.CLOUDFLARE_PAGES_PROJECT_NAME,
+						branch: process.env.CLOUDFLARE_PAGES_BRANCH,
+						outputDir,
+					}));
+	const buildAndDeploy = async () => {
+		await build();
+		await deploy();
+	};
 	const state: { buildPromise: Promise<void> | null; lastBuild: LastBuild } = {
 		buildPromise: null,
 		lastBuild: null,
@@ -167,7 +213,7 @@ function createNotesServer(options: NotesServerOptions = {}) {
 			}
 
 			const alreadyBuilding = Boolean(state.buildPromise);
-			runBuild(build, state).catch((error) => console.error("Build failed", error));
+			runBuild(buildAndDeploy, state).catch((error) => console.error("Build failed", error));
 			sendJson(res, alreadyBuilding ? 200 : 202, {
 				ok: true,
 				building: true,

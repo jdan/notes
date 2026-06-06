@@ -9,6 +9,7 @@
 		"build": "tsx index.ts",
 		"serve": "tsx server.ts",
 		"deploy:notes": "bash scripts/deploy-notes.sh",
+		"deploy:cloudflare": "bash scripts/deploy-cloudflare-pages.sh",
 		"build:cached-status": "npm run build && git -C build status --short",
 		"build:compare-fresh": "tsx scripts/compare-fresh-build.ts"
 	},
@@ -43,6 +44,7 @@
 		"tsx": "^4.20.5",
 		"typescript": "^6.0.3",
 		"typesync": "^0.14.3",
-		"vitest": "^4.1.8"
+		"vitest": "^4.1.8",
+		"wrangler": "^4.98.0"
 	}
 }
