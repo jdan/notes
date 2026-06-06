@@ -44,3 +44,39 @@ CONFIG=./recipes.env npm run build
 ```
 
 Take a look at the top 100 lines or so of index.ts to see what env vars are available.
+
+### notes deployment
+
+`notes.jordanscales.com` runs this app as a Docker container on the Hetzner server behind the existing `kamal-proxy`. It serves generated posts from a persistent directory and exposes a protected webhook that triggers a rebuild from Notion.
+
+Runtime state on Hetzner:
+
+```shell
+/opt/notes/.env     # NOTION_* config and WEBHOOK_SECRET
+/opt/notes/site     # generated static site
+/opt/notes/data     # sqlite cache
+```
+
+The Notion button should request:
+
+```text
+https://notes.jordanscales.com/webhook/notion?secret=<WEBHOOK_SECRET>
+```
+
+The server also accepts the secret in an `x-webhook-secret` header. Unauthenticated webhook calls return `401`.
+
+Useful checks:
+
+```shell
+curl https://notes.jordanscales.com/healthz
+ssh hetzner 'docker logs --tail 100 notes'
+ssh hetzner 'docker exec kamal-proxy kamal-proxy list'
+```
+
+To deploy source changes to the running `notes` service:
+
+```shell
+npm run deploy:notes
+```
+
+The deploy script syncs source to `/opt/notes`, preserves remote `.env`, rebuilds the Docker image, restarts the `notes` container, and re-registers the route with `kamal-proxy`. It intentionally does not use the nested `build/` git repo.

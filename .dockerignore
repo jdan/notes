@@ -1,0 +1,7 @@
+build
+build_tmp
+coverage
+db.sqlite3
+.env*
+node_modules
+site

@@ -7,6 +7,8 @@
 		"test:coverage": "vitest run --globals --coverage",
 		"typecheck": "tsc",
 		"build": "tsx index.ts",
+		"serve": "tsx server.ts",
+		"deploy:notes": "bash scripts/deploy-notes.sh",
 		"build:cached-status": "npm run build && git -C build status --short",
 		"build:compare-fresh": "tsx scripts/compare-fresh-build.ts"
 	},
