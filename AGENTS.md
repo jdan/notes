@@ -7,18 +7,22 @@
 - Test: `npm test`; focused snapshot test: `npx vitest run --globals test/render-snapshots.test.ts`.
 - Coverage: `npm run test:coverage` (`vitest run --globals --coverage`).
 - Build the site with `npm run build` (`tsx index.ts`), not `node index.js`.
+- Build with cache and show deployment changes: `npm run build:cached-status`.
+- Compare a no-cache fresh build against deployment output: `npm run build:compare-fresh`.
 
 ## Runtime And Config
 
 - `index.ts` is the real entrypoint and also exports render helpers used by tests.
 - The build reads Notion via `NOTION_SECRET` and `NOTION_DATABASE_ID`; env vars can come from `.env` or from `CONFIG=path/to/file.env`.
 - `BUILD`, `BASE_URL`, `TWITTER_HANDLE`, `OG_IMAGE`, and `SQLITE_DB_FILE` are read in the `settings` class near the top of `index.ts`.
-- `db.sqlite3`, `.env*`, and `build/` are ignored local artifacts; `npm run build` may touch them.
+- `db.sqlite3` and `.env*` are ignored local artifacts; `npm run build` may touch them.
 
 ## Build Output
 
 - `public/script.ts` is not emitted as a standalone browser file; `index.ts` reads it and transpiles it inline into generated HTML.
-- If a refactor should not change generated pages, run `npm run build` and verify `git status --short -- build` stays empty.
+- `build/` is a nested deployment git repo, not a disposable ignored directory. Never delete `build/`.
+- If a refactor should not change generated pages, run `npm run build:compare-fresh`; it builds into a temp output dir with a temp sqlite DB and compares against `build/` without touching the nested repo.
+- To inspect cached generated changes, run `npm run build:cached-status` or use `git -C build status --short` and `git -C build diff`.
 - Do not leave changes under `build/` while making codebase changes unless the user explicitly approves updating generated output. If `npm run build` changes `build/` unexpectedly, report it and leave the generated changes unstaged.
 
 ## Formatting And Linting

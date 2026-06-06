@@ -439,7 +439,7 @@ async function savePage(
     </body>
     </html>
   `;
-	await fsPromises.writeFile(settings.output(filename), body);
+	await writeFileIfChanged(settings.output(filename), body);
 
 	if (publishToRss) {
 		return {

@@ -6,7 +6,9 @@
 		"test": "vitest run --globals",
 		"test:coverage": "vitest run --globals --coverage",
 		"typecheck": "tsc",
-		"build": "tsx index.ts"
+		"build": "tsx index.ts",
+		"build:cached-status": "npm run build && git -C build status --short",
+		"build:compare-fresh": "tsx scripts/compare-fresh-build.ts"
 	},
 	"dependencies": {
 		"@notionhq/client": "^0.4.13",
