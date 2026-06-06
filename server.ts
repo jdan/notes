@@ -65,6 +65,9 @@ async function runBuild() {
 
 async function serveStatic(req: http.IncomingMessage, res: http.ServerResponse, url: URL) {
 	let pathname = decodeURIComponent(url.pathname);
+	if (pathname.startsWith("/fonts/")) {
+		pathname = pathname.replace(/^\/fonts/, "");
+	}
 	if (pathname.endsWith("/")) {
 		pathname += "index.html";
 	}
