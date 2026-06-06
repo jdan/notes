@@ -19,6 +19,7 @@ import {
 	longDate,
 	pageMetaDescription,
 	registerBacklink,
+	renderPageContents,
 	saveEmojiFavicon,
 	saveFavicon,
 	savePage,
@@ -1426,6 +1427,114 @@ test("image/file block renders responsive optimized sources", async () => {
 		for (const f of fs.readdirSync(settings.outputDir)) {
 			if (f.startsWith("test-responsive-image.image.")) fs.unlinkSync(settings.output(f));
 		}
+	}
+});
+
+const lcpImageBlock = (id: string) => ({
+	id,
+	type: "image",
+	image: {
+		type: "file",
+		file: { url: `https://example.com/${id}.png`, expiry_time: "" },
+		caption: [],
+	},
+	children: [],
+	has_children: false,
+});
+
+async function writeTestLcpImage(filename: string) {
+	await sharp({
+		create: {
+			width: 10,
+			height: 10,
+			channels: 3,
+			background: "#ffffff",
+		},
+	})
+		.png()
+		.toFile(settings.output(filename));
+}
+
+function deleteTestLcpImages() {
+	for (const f of fs.readdirSync(settings.outputDir)) {
+		if (f.startsWith("test-lcp-")) {
+			fs.unlinkSync(settings.output(f));
+		}
+	}
+}
+
+test("renderPageContents prioritizes only the first image in the post body", async () => {
+	const firstFilename = "test-lcp-first.image.png";
+	const secondFilename = "test-lcp-second.image.png";
+	const page = {
+		id: "test-lcp-page",
+		title: "LCP Page",
+		filename: "test-lcp-page.html",
+		created: "2024-01-01T00:00:00.000Z",
+		favicon: "",
+		headingIcon: null,
+		ogImage: null,
+		publishToRss: false,
+		blocks: [lcpImageBlock("test-lcp-first"), lcpImageBlock("test-lcp-second")],
+	};
+
+	try {
+		for (const filename of [firstFilename, secondFilename]) {
+			await writeTestLcpImage(filename);
+		}
+
+		await renderPageContents([page] as any);
+		const firstImage = page.content.match(/<img[^>]+test-lcp-first\.image\.png[^>]+>/)?.[0];
+		const secondImage = page.content.match(/<img[^>]+test-lcp-second\.image\.png[^>]+>/)?.[0];
+
+		expect(firstImage).toContain('fetchpriority="high"');
+		expect(firstImage).not.toContain('loading="lazy"');
+		expect(secondImage).toContain('loading="lazy"');
+		expect(secondImage).not.toContain('fetchpriority="high"');
+	} finally {
+		deleteTestLcpImages();
+	}
+});
+
+test("renderPageContents prioritizes nested image before later top-level image", async () => {
+	const nestedFilename = "test-lcp-nested.image.png";
+	const topLevelFilename = "test-lcp-top-level.image.png";
+	const page = {
+		id: "test-lcp-nested-page",
+		title: "Nested LCP Page",
+		filename: "test-lcp-nested-page.html",
+		created: "2024-01-01T00:00:00.000Z",
+		favicon: "",
+		headingIcon: null,
+		ogImage: null,
+		publishToRss: false,
+		blocks: [
+			{
+				id: "test-lcp-list-item",
+				type: "bulleted_list_item",
+				has_children: true,
+				bulleted_list_item: { text: [] },
+				children: [lcpImageBlock("test-lcp-nested")],
+			},
+			lcpImageBlock("test-lcp-top-level"),
+		],
+	};
+
+	try {
+		for (const filename of [nestedFilename, topLevelFilename]) {
+			await writeTestLcpImage(filename);
+		}
+
+		await renderPageContents([page] as any);
+		const nestedImage = page.content.match(/<img[^>]+test-lcp-nested\.image\.png[^>]+>/)?.[0];
+		const topLevelImage = page.content.match(/<img[^>]+test-lcp-top-level\.image\.png[^>]+>/)?.[0];
+
+		expect(nestedImage).toContain('fetchpriority="high"');
+		expect(nestedImage).not.toContain('loading="lazy"');
+		expect(topLevelImage).toContain('loading="lazy"');
+		expect(topLevelImage).not.toContain('fetchpriority="high"');
+	} finally {
+		deleteTestLcpImages();
 	}
 });
 

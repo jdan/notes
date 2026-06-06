@@ -30,6 +30,9 @@ type BuildOptions = {
 	debugPageId?: string;
 	logger?: Pick<Console, "log">;
 };
+type RenderOptions = BuildOptions & {
+	eagerImageBlockId?: string;
+};
 type RecursiveBranch<Branch, Leaf = never> = Branch & {
 	children: Array<Leaf | RecursiveBranch<Branch, Leaf>>;
 };
@@ -641,6 +644,7 @@ function renderImageSources(variants: ResponsiveImageVariants[]) {
 async function downloadImageBlock(
 	block: CardBlockBase & { type: "image" },
 	blockId: string,
+	isEagerImage = false,
 ): Promise<string | undefined> {
 	const filename = await downloadImage(
 		block.image.type === "file" ? block.image.file.url : block.image.external.url,
@@ -660,9 +664,12 @@ async function downloadImageBlock(
 	if (dimensions) {
 		sources = renderImageSources(await responsiveImageVariants(filename, dimensions));
 	}
+	const loadingAttributes = isEagerImage
+		? 'fetchpriority="high" decoding="async"'
+		: 'loading="lazy" decoding="async"';
 	const html = `<figure id="${blockId}">
       <picture>
-        ${sources}<img alt="${caption}" src="${settings.url(filename)}" loading="lazy" decoding="async"${sizeAttributes}>
+        ${sources}<img alt="${caption}" src="${settings.url(filename)}" ${loadingAttributes}${sizeAttributes}>
       </picture>
       <figcaption>${caption}</figcaption>
     </figure>`;
@@ -674,7 +681,7 @@ async function blockToHtml(
 	block: CardBlock,
 	pageId: string,
 	allPages: CardPage[],
-	options: BuildOptions = {},
+	options: RenderOptions = {},
 ): Promise<string | undefined> {
 	if (pageId === options.debugPageId) {
 		(options.logger || console).log("[DEBUG]", block.type, block.id);
@@ -775,12 +782,16 @@ async function blockToHtml(
 			strict: false,
 		});
 	} else if (block.type === "image") {
+		const isEagerImage = block.id === options.eagerImageBlockId;
+		const loadingAttributes = isEagerImage
+			? 'fetchpriority="high" decoding="async"'
+			: 'loading="lazy" decoding="async"';
 		if (block.image.type === "file") {
-			return downloadImageBlock(block as CardBlockBase & { type: "image" }, blockId);
+			return downloadImageBlock(block as CardBlockBase & { type: "image" }, blockId, isEagerImage);
 		} else if (block.image.type === "external") {
 			const caption = concatenateText(block.image.caption);
 			return `<figure id="${blockId}">
-        <img alt="${caption}" src="${block.image.external.url}" loading="lazy" decoding="async">
+        <img alt="${caption}" src="${block.image.external.url}" ${loadingAttributes}>
         <figcaption>${caption}</figcaption>
       </figure>`;
 		} else {
@@ -927,6 +938,21 @@ const registerBacklink = (sourceId: string, destinationId: string) => {
 	}
 };
 
+function firstBodyImageBlockId(blocks: CardBlock[]): string | undefined {
+	for (const block of blocks) {
+		// The first image in the post body is often the mobile LCP candidate. Keep it eager
+		// so the browser discovers it immediately; lazy-load the remaining body images.
+		if (block.type === "image") {
+			return block.id;
+		}
+
+		const childImageBlockId = firstBodyImageBlockId(block.children);
+		if (childImageBlockId) {
+			return childImageBlockId;
+		}
+	}
+}
+
 async function renderPageContents(pages: CardPage[], options: BuildOptions = {}) {
 	for (const id of Object.keys(backlinks)) {
 		delete backlinks[id];
@@ -934,8 +960,12 @@ async function renderPageContents(pages: CardPage[], options: BuildOptions = {})
 
 	await Promise.all(
 		pages.map(async (page) => {
+			const renderOptions: RenderOptions = {
+				...options,
+				eagerImageBlockId: firstBodyImageBlockId(page.blocks),
+			};
 			const renderedBlocks = await Promise.all(
-				page.blocks.map(async (block) => blockToHtml(block, page.id, pages, options)),
+				page.blocks.map(async (block) => blockToHtml(block, page.id, pages, renderOptions)),
 			);
 			page.content = renderedBlocks.join("");
 		}),
