@@ -1,32 +1,30 @@
-require("dotenv").config({
+import fs from "fs";
+import https from "https";
+import path from "path";
+import { config } from "dotenv";
+import emoji from "node-emoji";
+import emojiUnicode from "emoji-unicode";
+import { Feed } from "feed";
+import katex from "katex";
+import mimeTypes from "mime-types";
+import forEachRow from "notion-for-each-row";
+import Prism from "prismjs";
+import loadLanguages from "prismjs/components/";
+import { DataTypes, Sequelize } from "sequelize";
+import ts from "typescript";
+import type { Client as NotionClient } from "@notionhq/client";
+import type { GetBlockResponse } from "@notionhq/client/build/src/api-endpoints";
+
+config({
 	path: process.env.CONFIG,
 	debug: Boolean(process.env.CONFIG),
 });
-const browserify = require("browserify");
-const childProcess = require("child_process");
-const crypto = require("crypto");
-const fs = require("fs");
+
 const fsPromises = fs.promises;
-const https = require("https");
-const path = require("path");
-const emoji = require("node-emoji");
-const emojiUnicode = require("emoji-unicode");
-const forEachRow = require("notion-for-each-row");
-const katex = require("katex");
-const Prism = require("prismjs");
-const loadLanguages = require("prismjs/components/");
-const mimeTypes = require("mime-types");
-const ts = require("typescript");
 
 // Set to the block ID to debug it
 const DEBUG = null;
 // const DEBUG = "fe053dd4-76c3-4ed6-8137-24b7e319599c";
-
-const { Sequelize, Op, Model, DataTypes } = require("sequelize");
-const { Feed } = require("feed");
-
-import type { Client as NotionClient } from "@notionhq/client";
-import type { GetBlockResponse } from "@notionhq/client/build/src/api-endpoints";
 
 type Block = Extract<GetBlockResponse, { type: string }>;
 type RichText = Extract<
@@ -934,7 +932,7 @@ const main = async function main() {
 	console.log("\n\n", new Date(), "\n", settings.info());
 
 	const pages: CardPage[] = [];
-	const PageModel = await getPageModel();
+	const PageModel = (await getPageModel()) as any;
 
 	// Make sure settings.outputDir exists
 	if (!fs.existsSync(settings.outputDir)) {
@@ -1071,7 +1069,7 @@ const main = async function main() {
 	await fs.promises.writeFile(settings.output("feed.atom"), feed.atom1());
 };
 
-if (require.main === module) {
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
 	(async () => {
 		try {
 			await main();
