@@ -46,3 +46,75 @@ exports[`rendered post snapshots > 'Stack-based programming' 1`] = `
       <div class="children"></div>
     </div>"
 `;
+
+exports[`rendered post snapshots > 'turing' 1`] = `
+"<div class="text" id="b0807eb20">
+      A visualization of a 3-symbol, 3-state <a href="https://en.wikipedia.org/wiki/Turing_machine">Turing machine</a>.
+      <div class="children"></div>
+    </div>
+      <script>const _ = (measurement, dimension) =>
+  Math.round((measurement * dimension) / 1320);
+
+const project = (val, valMin, valMax, desiredMin, desiredMax) =>
+  ((val - valMin) / (valMax - valMin)) * (desiredMax - desiredMin) + desiredMin;</script>
+    <div class="hashart" id="hashart-ui">
+  <input class="bytes" value="Hello, world!" />
+  <canvas class="canvas" width="1320" height="990"></canvas>
+  <aside></aside>
+</div>
+      <script>class Turing extends Art {
+  constructor() {
+    super({ α0: 3, β0: 3, γ0: 3, input: 5 });
+    this.filename = "turing.js";
+  }
+
+  transition(table, tape, cursorPosition, state) {
+    let value = tape[cursorPosition];
+    let { write, move, nextState } = table[value][state];
+    tape[cursorPosition] = write;
+    return [move ? cursorPosition + 1 : cursorPosition - 1, nextState];
+  }
+}</script>
+    <figure id="b0fdccf42">
+        <img alt="" src="https://notes.jordanscales.com/0fdccf42-8e90-4d2a-8fd3-50409ec190d8.image.jpeg" fetchpriority="high" decoding="async">
+        <figcaption></figcaption>
+      </figure><h2 id="details-img-class-emoji-alt-src-1f913-png-">
+      <a href="#details-img-class-emoji-alt-src-1f913-png-" class="link">🔗</a>
+      Details <img class="emoji" alt="🤓" src="1f913.png" />
+    </h2><div class="text" id="b92acc1ba">
+      The input <code>turing complete</code> hashes to the following:
+      <div class="children"></div>
+    </div><pre id="b5fe3b8b2"><code class="language-plain-text">66a77509eaf0d8589812c53dacb80ebb5f98f16dc06b6ae65f3bd67a5a00937e</code></pre><div class="text" id="bfb2dde27">
+      We divvy this hash up into several parameters:
+      <div class="children"></div>
+    </div><pre id="b4afe36b2"><code class="language-plain-text">α0      66a775
+β0      09eaf0
+γ0      d85898
+input   7a5a00937e</code></pre><div class="text" id="b5de63846">
+      Our machine has a head which can read and write values 0, 1, and 2 from an infinite tape. The head itself can be in one of three states <strong>α</strong>, <strong>β</strong>, and <strong>γ</strong>.
+      <div class="children"></div>
+    </div><div class="text" id="b1cfb618e">
+      The field <code>α0</code> means for state <code>α</code> and a value <code>0</code> on the tape.
+      <div class="children"></div>
+    </div><ol id="bp01f0aa5"><li id="b01f0aa5d">
+      <div class="list-item">
+        <em>Write</em> a symbol to the tape
+      </div>
+      
+    </li>
+<li id="ba680acd5">
+      <div class="list-item">
+        <em>Move</em> left or right
+      </div>
+      
+    </li>
+<li id="b24aa1031">
+      <div class="list-item">
+        <em>State</em> chooses what comes next
+      </div>
+      
+    </li></ol><div class="text" id="b14bd9df3">
+      Then we start writing <img class="emoji" alt="✍️" src="270d-fe0f.png" />. After each step, we draw the tape and the position of the cursor with a little ▼.
+      <div class="children"></div>
+    </div>"
+`;
