@@ -14,6 +14,7 @@
 
 - `index.ts` is the real entrypoint and also exports render helpers used by tests.
 - The build reads Notion via `NOTION_SECRET` and `NOTION_DATABASE_ID`; env vars can come from `.env` or from `CONFIG=path/to/file.env`.
+- When editing draft Notion pages, you can use `NOTION_SECRET` with the Notion API to inspect and modify blocks directly; for Val Town embeds, use the Val Town MCP to read the referenced val source and replace the embed block with a Notion `code` block when requested. Ask whether to also add useful output blocks for examples and format code blocks for mobile readability, commonly with `oxfmt` at `printWidth: 40`, trimming `Open in Val Town` headers and trailing newlines.
 - `BUILD`, `BASE_URL`, `TWITTER_HANDLE`, `OG_IMAGE`, and `SQLITE_DB_FILE` are read in the `settings` class near the top of `index.ts`.
 - `db.sqlite3` and `.env*` are ignored local artifacts; `npm run build` may touch them.
 
