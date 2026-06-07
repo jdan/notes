@@ -5,6 +5,7 @@ type ThemeAssetsWindow = Window &
 
 const stylesheet = document.getElementById("prism") as HTMLElement;
 const toggleBtn = document.getElementById("toggle-btn") as HTMLElement;
+const themeColor = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
 const themeAssets = (window as ThemeAssetsWindow).__themeAssets;
 const prefetchedLinks = new Set<string>();
 
@@ -15,15 +16,19 @@ type NavigatorWithConnection = Navigator & {
 function setTheme(isDark: boolean) {
 	if (isDark) {
 		localStorage.setItem("theme", "dark");
+		document.documentElement.classList.add("dark");
 		document.body.classList.add("dark");
 		toggleBtn.innerHTML = "☀️";
 		toggleBtn.setAttribute("aria-label", "enable light theme");
+		themeColor.content = "#2f3437";
 		stylesheet.setAttribute("href", themeAssets.prismTomorrow);
 	} else {
 		localStorage.setItem("theme", "light");
+		document.documentElement.classList.remove("dark");
 		document.body.classList.remove("dark");
 		toggleBtn.innerHTML = "🌙";
 		toggleBtn.setAttribute("aria-label", "enable dark theme");
+		themeColor.content = "#ffffff";
 		stylesheet.setAttribute("href", themeAssets.prismCoy);
 	}
 }

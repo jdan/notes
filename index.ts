@@ -522,6 +522,11 @@ async function savePage(
 		prismCoy: settings.url("prism-coy.css"),
 		prismTomorrow: settings.url("prism-tomorrow.css"),
 	});
+	const themeBootstrapScript = `(() => {
+        const theme = localStorage.getItem("theme") ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        if (theme === "dark") document.documentElement.classList.add("dark");
+        document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#2f3437" : "#ffffff");
+      })()`;
 
 	const body = `
     <!doctype html>
@@ -531,6 +536,9 @@ async function savePage(
       <link rel="Shortcut Icon" type="image/x-icon" href="${settings.url(icon)}" />
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="color-scheme" content="light dark">
+      <meta name="theme-color" content="#ffffff">
+      <script>${themeBootstrapScript}</script>
 
       <link rel="alternate" type="application/atom+xml" title="Feed" href="https://notes.jordanscales.com/feed.atom">
 

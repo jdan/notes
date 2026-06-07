@@ -8,6 +8,7 @@
 	--image-width: 460px;
 }
 
+:root.dark,
 body.dark {
 	--font-color: rgba(255, 255, 255, 0.9);
 	--background-color: #2f3437;
