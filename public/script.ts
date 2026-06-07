@@ -1,6 +1,11 @@
+type ThemeAssetsWindow = Window &
+	typeof globalThis & {
+		__themeAssets: { prismCoy: string; prismTomorrow: string };
+	};
+
 const stylesheet = document.getElementById("prism") as HTMLElement;
 const toggleBtn = document.getElementById("toggle-btn") as HTMLElement;
-const themeAssets = (window as any).__themeAssets;
+const themeAssets = (window as ThemeAssetsWindow).__themeAssets;
 
 function setTheme(isDark: boolean) {
 	if (isDark) {

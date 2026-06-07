@@ -1,9 +1,13 @@
 import fs from "fs";
+import type { IncomingMessage } from "http";
 import https from "https";
 import path from "path";
 
 import type { Client as NotionClient } from "@notionhq/client";
-import type { GetBlockResponse } from "@notionhq/client/build/src/api-endpoints";
+import type {
+	GetBlockResponse,
+	QueryDatabaseResponse,
+} from "@notionhq/client/build/src/api-endpoints";
 import { config } from "dotenv";
 import emojiUnicode from "emoji-unicode";
 import { Feed } from "feed";
@@ -13,7 +17,7 @@ import emoji from "node-emoji";
 import forEachRow from "notion-for-each-row";
 import Prism from "prismjs";
 import loadLanguages from "prismjs/components/";
-import { DataTypes, Sequelize } from "sequelize";
+import { DataTypes, Model, Sequelize } from "sequelize";
 import sharp from "sharp";
 import ts from "typescript";
 
@@ -38,13 +42,7 @@ type RecursiveBranch<Branch, Leaf = never> = Branch & {
 };
 type RecursiveTree<Branch, Leaf = never> = RecursiveBranch<Branch, Leaf> | Leaf;
 type GroupedBlockType = "numbered_list_item" | "bulleted_list_item";
-interface CardBlockBase {
-	id: string;
-	type: Block["type"];
-	has_children: boolean;
-	children: CardBlock[];
-	[key: string]: any;
-}
+type CardBlockBase = Block & { children: CardBlock[] };
 type BlockGroup<BlockType extends Block["type"], GroupType extends string> = {
 	id: string;
 	type: GroupType;
@@ -75,6 +73,14 @@ type ResponsiveImageVariants = {
 	webp: string;
 	width: number;
 };
+type CachedPageModel = Model & {
+	body?: string;
+	createdAt?: Date | string;
+	updatedAt?: Date | string;
+};
+type NotionRow = QueryDatabaseResponse["results"][number];
+type NotionPage = Extract<NotionRow, { properties: object }>;
+type NotionPageProperties = NotionPage["properties"];
 
 const responsiveImageWidths = [460, 920, 1240];
 const responsiveImageSizes = "(max-width: 660px) calc(100vw - 40px), 460px";
@@ -218,6 +224,78 @@ function concatenateText(arr: RichText[] | undefined) {
 	}
 }
 
+function richTextProperty(properties: NotionPageProperties, name: string) {
+	const property = properties[name];
+	return hasRichText(property) ? property.rich_text : [];
+}
+
+function titleProperty(properties: NotionPageProperties, name: string) {
+	const property = properties[name];
+	return hasTitle(property) ? property.title : [];
+}
+
+function checkboxProperty(properties: NotionPageProperties, name: string) {
+	const property = properties[name];
+	return hasCheckbox(property) ? property.checkbox : false;
+}
+
+function firstFileUrlProperty(properties: NotionPageProperties, name: string) {
+	const property = properties[name];
+	const file = hasFiles(property) ? property.files[0] : undefined;
+	if (file?.type === "file") {
+		return file.file.url;
+	}
+}
+
+function hasRichText(property: unknown): property is { rich_text: RichText[] } {
+	return hasArrayProperty(property, "rich_text");
+}
+
+function hasTitle(property: unknown): property is { title: RichText[] } {
+	return hasArrayProperty(property, "title");
+}
+
+function hasCheckbox(property: unknown): property is { checkbox: boolean } {
+	return (
+		typeof property === "object" &&
+		property !== null &&
+		"checkbox" in property &&
+		typeof property.checkbox === "boolean"
+	);
+}
+
+function hasFiles(
+	property: unknown,
+): property is { files: Array<{ type: "file"; file: { url: string } }> } {
+	return hasArrayProperty(property, "files");
+}
+
+function hasArrayProperty<Key extends string>(
+	property: unknown,
+	key: Key,
+): property is Record<Key, unknown[]> {
+	if (typeof property !== "object" || property === null || !(key in property)) {
+		return false;
+	}
+
+	const record = property as Record<Key, unknown>;
+	return Array.isArray(record[key]);
+}
+
+function isNotionPage(row: NotionRow): row is NotionPage {
+	return "properties" in row;
+}
+
+function supportedPageIcon(icon: NotionPage["icon"]): PageIcon {
+	if (icon?.type === "file") {
+		return icon;
+	}
+	if (icon?.type === "emoji" && typeof icon.emoji === "string") {
+		return icon;
+	}
+	return null;
+}
+
 function escapeHtmlAttribute(str: string) {
 	return str
 		.replace(/&/g, "&amp;")
@@ -354,7 +432,7 @@ async function textToHtml(pageId: string, text: RichText, allPages: CardPage[]) 
 				const longDate = new Intl.DateTimeFormat("en-US", options).format(localDate);
 				return `${longDate} - ${time}`;
 			}
-		} else if ((text.mention as any).type === "template_mention") {
+		} else if ((text.mention as { type: string }).type === "template_mention") {
 			// Template mentions are a no-op
 			return "";
 		} else {
@@ -522,7 +600,7 @@ async function downloadImage(url: string, filenamePrefix: string): Promise<strin
 
 	if (!filename) {
 		return new Promise<string | undefined>((resolve) => {
-			const request = https.get(url, (res: any) => {
+			const request = https.get(url, (res: IncomingMessage) => {
 				const ext = mimeTypes.extension(res.headers["content-type"] || "image/png");
 				const dest = `${filenamePrefix}.${ext}`;
 				const destStream = fs.createWriteStream(settings.output(dest));
@@ -1038,7 +1116,7 @@ const main = async function main(options: BuildOptions = {}) {
 	console.log("\n\n", new Date(), "\n", settings.info());
 
 	const pages: CardPage[] = [];
-	const PageModel = (await getPageModel()) as any;
+	const PageModel = await getPageModel();
 
 	// Make sure settings.outputDir exists
 	if (!fs.existsSync(settings.outputDir)) {
@@ -1051,47 +1129,53 @@ const main = async function main(options: BuildOptions = {}) {
 			token: settings.notionSecret,
 			database: settings.notionDatabaseId,
 		},
-		async (page: any, notion: NotionClient) => {
+		async (page: NotionRow, notion: NotionClient) => {
+			if (!isNotionPage(page)) {
+				return;
+			}
+
 			const { id, created_time, last_edited_time, icon, properties } = page;
 			if (options.debugPageId && id !== options.debugPageId) {
 				return;
 			}
 
-			let existingPage = await PageModel.findByPk(id);
+			let existingPage = (await PageModel.findByPk(id)) as CachedPageModel | null;
+			const existingPageUpdatedAt = existingPage?.updatedAt;
 			const existingPageHasUpdates =
-				new Date(last_edited_time).getTime() > new Date(existingPage?.updatedAt).getTime();
+				existingPageUpdatedAt !== undefined &&
+				new Date(last_edited_time).getTime() > new Date(existingPageUpdatedAt).getTime();
 
 			if (options.debugPageId || !existingPage || existingPageHasUpdates) {
 				existingPage =
 					existingPage ||
-					PageModel.build({
+					(PageModel.build({
 						id,
 						createdAt: created_time,
-					});
+					}) as CachedPageModel);
 
-				const title = concatenateText(properties.Name.title);
+				const title = concatenateText(titleProperty(properties, "Name"));
 				const children = await getChildren(notion, id);
-				const favicon = (await saveFavicon(id, icon)) || "";
+				const pageIcon = supportedPageIcon(icon);
+				const favicon = (await saveFavicon(id, pageIcon)) || "";
 
 				// headingIcon is generated here so it can have the
 				// emoji character as its alt text.
 				//
 				// Probably better to just send the emoji down.
-				const headingIcon = icon
+				const headingIcon = pageIcon
 					? `<img width="32" height="32" alt="${
-							icon.type === "emoji" ? icon.emoji : ""
+							pageIcon.type === "emoji" ? pageIcon.emoji : ""
 						}" src="${settings.url(favicon)}" />`
 					: null;
 
 				const filename =
-					(properties.Filename ? concatenateText(properties.Filename.rich_text) : "") ||
+					concatenateText(richTextProperty(properties, "Filename")) ||
 					`${id.replace(/-/g, "").slice(0, 8)}.html`;
 
-				const ogImage = properties["og:image"].files[0]
-					? await downloadImage(properties["og:image"].files[0].file.url, `${id}.ogImage`)
-					: null;
+				const ogImageUrl = firstFileUrlProperty(properties, "og:image");
+				const ogImage = ogImageUrl ? await downloadImage(ogImageUrl, `${id}.ogImage`) : null;
 
-				const publishToRss = properties["Publish to RSS"].checkbox;
+				const publishToRss = checkboxProperty(properties, "Publish to RSS");
 
 				const blocks = groupAdjacentBlocksRecursively(
 					groupAdjacentBlocksRecursively(children, "numbered_list_item", "numbered_list"),
@@ -1119,7 +1203,7 @@ const main = async function main(options: BuildOptions = {}) {
 				await existingPage.save();
 			} else {
 				// Use the cached page
-				pages.push(JSON.parse(existingPage.body));
+				pages.push(JSON.parse(existingPage.body || "{}") as CardPage);
 			}
 		},
 	);

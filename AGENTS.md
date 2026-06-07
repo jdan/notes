@@ -3,7 +3,7 @@
 ## Commands
 
 - Install with `npm install`; this repo uses `package-lock.json`.
-- Typecheck: `npm run typecheck` (`tsc`, `noEmit`, strict, `allowJs: false`).
+- Lint and typecheck: `npm run lint && npm run typecheck` (`oxlint` forbids production `any`; `tsc` uses `noEmit`, strict, `allowJs: false`).
 - Test: `npm test`; focused snapshot test: `npx vitest run --globals test/render-snapshots.test.ts`.
 - Coverage: `npm run test:coverage` (`vitest run --globals --coverage`).
 - Build the site with `npm run build` (`tsx index.ts`), not `node index.js`.
