@@ -481,13 +481,17 @@ async function writeFileIfChanged(filename: string, content: string) {
 const linkOfId = (allPages: CardPage[], id: string, args: { overwriteTitle?: string } = {}) => {
 	const page = allPages.find((entry) => entry.id === id);
 	if (page) {
-		return `<a href="${settings.url(page.filename)}"${page.favicon ? ` class="with-emoji"` : ""}>
+		return `<a href="${pageUrl(page.filename)}"${page.favicon ? ` class="with-emoji"` : ""}>
       ${page.favicon ? `<img class="emoji" alt="" src="${settings.url(page.favicon)}">` : ""}
       ${args.overwriteTitle || page.title}</a>`;
 	} else {
 		return `[${id}]`;
 	}
 };
+
+function pageUrl(filename: string) {
+	return settings.url(filename.replace(/\.html$/, ""));
+}
 
 async function savePage(
 	{ id, title, created, favicon, headingIcon, content, filename, publishToRss, ogImage }: CardPage,
@@ -574,8 +578,8 @@ async function savePage(
 	if (publishToRss) {
 		return {
 			title,
-			id: settings.url(filename),
-			link: settings.url(filename),
+			id: pageUrl(filename),
+			link: pageUrl(filename),
 			content: body,
 			author: [
 				{

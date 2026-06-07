@@ -117,7 +117,7 @@ test("main builds pages and feed from Notion rows", async () => {
 		"Built by main",
 	);
 	const olderPageHtml = fs.readFileSync(path.join(outputDir, "older-main-test.html"), "utf8");
-	expect(olderPageHtml.match(/href="\/main-test\.html"/g) || []).toHaveLength(1);
+	expect(olderPageHtml.match(/href="\/main-test"/g) || []).toHaveLength(1);
 	expect(secondFeed).toBe(firstFeed);
 	expect(secondFeedStat.mtimeMs).toBe(firstFeedStat.mtimeMs);
 	expect(secondFeed).toContain("<updated>2024-01-02T00:00:00.000Z</updated>");

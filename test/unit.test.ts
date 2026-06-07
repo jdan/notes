@@ -303,7 +303,7 @@ describe("textToHtml", () => {
 			richText("link text", { link: { url: "/cd2cb8c2dcc64da4bb025fa71513b780" } }),
 			pages,
 		);
-		expect(result).toContain('href="/test-page.html"');
+		expect(result).toContain('href="/test-page"');
 		expect(result).toContain("link text");
 	});
 
@@ -325,7 +325,7 @@ describe("textToHtml", () => {
 				richText("link text", { link: { url: "/cd2cb8c2dcc64da4bb025fa71513b780" } }),
 				pages,
 			);
-			expect(result).toContain('href="/prefix/test-page.html"');
+			expect(result).toContain('href="/prefix/test-page"');
 		} finally {
 			process.env.BASE_URL = orig;
 		}
@@ -346,7 +346,7 @@ describe("textToHtml", () => {
 			},
 			pages,
 		);
-		expect(result).toContain('href="/test-page.html"');
+		expect(result).toContain('href="/test-page"');
 	});
 
 	test("date-only mention", async () => {
@@ -1667,6 +1667,7 @@ describe("savePage", () => {
 
 		expect(result).not.toBeNull();
 		expect(result.title).toBe("RSS Test");
+		expect(result.link).toBe("/test-rss-page");
 		expect(result.author).toHaveLength(1);
 	});
 
