@@ -501,7 +501,7 @@ describe("settings", () => {
 		process.env.OG_IMAGE = "https://example.com/img.png";
 		expect(settings.ogImage).toBe("https://example.com/img.png");
 		delete process.env.OG_IMAGE;
-		expect(settings.ogImage).toBe("https://notes.jordanscales.com/me.png");
+		expect(settings.ogImage).toBe("https://notes.jordanscales.com/me.jpeg");
 		restore();
 	});
 

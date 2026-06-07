@@ -104,7 +104,7 @@ const settings = new (class Settings {
 	}
 
 	get ogImage() {
-		return process.env.OG_IMAGE || "https://notes.jordanscales.com/me.png";
+		return process.env.OG_IMAGE || "https://notes.jordanscales.com/me.jpeg";
 	}
 
 	get baseUrl() {
@@ -370,7 +370,7 @@ async function textToHtml(pageId: string, text: RichText, allPages: CardPage[]) 
 async function copyStaticAssets() {
 	const assets = [
 		path.join(__dirname, "public/style.css"),
-		path.join(__dirname, "public/me.png"),
+		path.join(__dirname, "public/me.jpeg"),
 		path.join(__dirname, "public/serve.json"),
 		path.join(__dirname, "node_modules/prismjs/themes/prism-coy.css"),
 		path.join(__dirname, "node_modules/prismjs/themes/prism-tomorrow.css"),
