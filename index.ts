@@ -98,6 +98,7 @@ loadLanguages([
 	"sql",
 	"bqn",
 	"ruby",
+	"json",
 ]);
 
 /**
