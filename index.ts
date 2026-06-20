@@ -494,6 +494,10 @@ function pageUrl(filename: string) {
 	return settings.url(filename.replace(/\.html$/, ""));
 }
 
+function htmlFilename(filename: string) {
+	return filename.endsWith(".html") ? filename : `${filename}.html`;
+}
+
 async function savePage(
 	{ id, title, created, favicon, headingIcon, content, filename, publishToRss, ogImage }: CardPage,
 	backlinks: Backlinks,
@@ -1181,9 +1185,10 @@ const main = async function main(options: BuildOptions = {}) {
 						}" src="${settings.url(favicon)}" />`
 					: null;
 
-				const filename =
+				const filename = htmlFilename(
 					concatenateText(richTextProperty(properties, "Filename")) ||
-					`${id.replace(/-/g, "").slice(0, 8)}.html`;
+						id.replace(/-/g, "").slice(0, 8),
+				);
 
 				const ogImageUrl = firstFileUrlProperty(properties, "og:image");
 				const ogImage = ogImageUrl ? await downloadImage(ogImageUrl, `${id}.ogImage`) : null;
@@ -1290,6 +1295,7 @@ export {
 	longDate,
 	main,
 	pageMetaDescription,
+	htmlFilename,
 	registerBacklink,
 	renderPageContents,
 	saveEmojiFavicon,

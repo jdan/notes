@@ -16,6 +16,7 @@ import {
 	getChildren,
 	getPageModel,
 	groupAdjacentBlocksRecursively,
+	htmlFilename,
 	longDate,
 	pageMetaDescription,
 	registerBacklink,
@@ -102,6 +103,13 @@ describe("sluggify", () => {
 
 	test("handles multiple spaces/special chars", () => {
 		expect(sluggify("A   B___C:::D")).toBe("a-b-c-d");
+	});
+});
+
+describe("htmlFilename", () => {
+	test("adds html extension when missing", () => {
+		expect(htmlFilename("post")).toBe("post.html");
+		expect(htmlFilename("post.html")).toBe("post.html");
 	});
 });
 

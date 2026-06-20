@@ -57,7 +57,7 @@ test("main builds pages and feed from Notion rows", async () => {
 		icon: { type: "emoji", emoji: "❤️" },
 		properties: {
 			Name: { title: [richText("Main Test")] },
-			Filename: { rich_text: [richText("main-test.html")] },
+			Filename: { rich_text: [richText("main-test")] },
 			"og:image": { files: [] },
 			"Publish to RSS": { checkbox: true },
 		},
@@ -116,6 +116,7 @@ test("main builds pages and feed from Notion rows", async () => {
 	expect(fs.readFileSync(path.join(outputDir, "main-test.html"), "utf8")).toContain(
 		"Built by main",
 	);
+	expect(fs.existsSync(path.join(outputDir, "main-test"))).toBe(false);
 	const olderPageHtml = fs.readFileSync(path.join(outputDir, "older-main-test.html"), "utf8");
 	expect(olderPageHtml.match(/href="\/main-test"/g) || []).toHaveLength(1);
 	expect(secondFeed).toBe(firstFeed);
