@@ -115,7 +115,7 @@ async function serveStatic(
 		pathname += "index.html";
 	}
 
-	const filepath = path.resolve(outputDir, pathname.replace(/^\/+/, ""));
+	let filepath = path.resolve(outputDir, pathname.replace(/^\/+/, ""));
 	const relativePath = path.relative(outputDir, filepath);
 	if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
 		res.writeHead(403);
@@ -124,7 +124,18 @@ async function serveStatic(
 	}
 
 	try {
-		const stat = await fsPromises.stat(filepath);
+		let stat: fs.Stats;
+		try {
+			stat = await fsPromises.stat(filepath);
+		} catch (error) {
+			if (path.extname(filepath)) {
+				throw error;
+			}
+
+			filepath += ".html";
+			stat = await fsPromises.stat(filepath);
+		}
+
 		if (stat.isDirectory()) {
 			res.writeHead(301, { Location: `${url.pathname.replace(/\/$/, "")}/` });
 			res.end();

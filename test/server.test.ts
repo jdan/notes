@@ -42,6 +42,7 @@ describe("createNotesServer", () => {
 		const outputDir = path.join(tmpRoot, "site");
 		fs.mkdirSync(path.join(outputDir, "blog"), { recursive: true });
 		fs.writeFileSync(path.join(outputDir, "index.html"), "<h1>Home</h1>");
+		fs.writeFileSync(path.join(outputDir, "article.html"), "<h1>Article</h1>");
 		fs.writeFileSync(path.join(outputDir, "app.js"), "console.log('ok');");
 		fs.writeFileSync(path.join(outputDir, "font.woff2"), "font");
 
@@ -69,6 +70,11 @@ describe("createNotesServer", () => {
 		const directory = await fetch(`${baseUrl}/blog`, { redirect: "manual" });
 		expect(directory.status).toBe(301);
 		expect(directory.headers.get("location")).toBe("/blog/");
+
+		const extensionlessHtml = await fetch(`${baseUrl}/article`);
+		expect(extensionlessHtml.status).toBe(200);
+		expect(extensionlessHtml.headers.get("content-type")).toContain("text/html");
+		expect(await extensionlessHtml.text()).toBe("<h1>Article</h1>");
 	});
 
 	test("rejects traversal attempts and returns 404 for missing files", async () => {

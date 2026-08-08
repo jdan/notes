@@ -48,8 +48,8 @@ a {
 
 a.with-emoji {
 	display: inline-flex;
-	align-items: center;
-	vertical-align: bottom;
+	align-items: flex-start;
+	vertical-align: top;
 }
 
 a.with-emoji img.emoji {
