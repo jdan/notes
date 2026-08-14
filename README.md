@@ -1,30 +1,32 @@
-## notes
+# notes
 
-Turn a [Notion](https://notion.so) database into static site. @jdan uses this to power [notes.jordanscales.com](https://notes.jordanscales.com).
+Turn a [Notion](https://notion.so) database into a static site. This project powers [notes.jordanscales.com](https://notes.jordanscales.com).
 
 <img width="1381" alt="a desktop with notion open on the left and a rendered notion page using this library on the right" src="https://user-images.githubusercontent.com/287268/144431224-ac4673ba-e432-47d7-94c5-c82ecbadb986.png">
 
-### usage
+## Usage
 
-As a heads up, this barely works at all. It may not handle HTML escaping correctly. Do not run on untrusted input.
+This project is designed for trusted content from a private Notion database. Its HTML escaping has not been audited for untrusted input.
 
 1. [Create a new Notion integration](https://developers.notion.com/docs/getting-started#step-1-create-an-integration)
-1. Create a new database and note it's ID from the address bar
+1. Create a database and note its ID from the address bar:
    - `https://www.notion.so/[username]/[your database ID, copy this!]?v=[ignore this]`
-   - Add a column called "Filename" to set the output filename for a card. This is required for an `index.html`.
-
+   - Add a column called `Filename` to set each page's output filename. One page must use `index.html`.
 1. [Share that database with your new integration](https://developers.notion.com/docs/getting-started#step-2-share-a-database-with-your-integration)
-1. Run the script
+1. Build and serve the site:
 
 ```sh
-git clone https://github.com/jdan/cards.git
-npm i
+git clone https://github.com/jdan/notes.git
+cd notes
+npm install
 NOTION_SECRET=[your token here] NOTION_DATABASE_ID=[your id here] TWITTER_HANDLE=yourHandle npm run build
-npx serve build   # build/ contains everything you need
-# localhost:5000 now shows your cards
+BUILD=build npm run serve
+# http://localhost:3000
 ```
 
-### config
+The generated HTML and assets are written to `build/` by default.
+
+## Configuration
 
 Configuration is provided via environment variables, a [`.env` file, or a config file in the `.env` format](https://github.com/motdotla/dotenv#what-rules-does-the-parsing-engine-follow). To specify a config file, set the `CONFIG=path/to/your/file.env` env var. Here's an example:
 
@@ -43,9 +45,32 @@ Then to use the config, run:
 CONFIG=./recipes.env npm run build
 ```
 
-Take a look at the top 100 lines or so of index.ts to see what env vars are available.
+| Variable             | Required   | Default                                  | Purpose                                   |
+| -------------------- | ---------- | ---------------------------------------- | ----------------------------------------- |
+| `NOTION_SECRET`      | Yes        | —                                        | Notion integration token                  |
+| `NOTION_DATABASE_ID` | Yes        | —                                        | Source Notion database                    |
+| `TWITTER_HANDLE`     | No         | `jdan`                                   | Handle used in social metadata            |
+| `OG_IMAGE`           | No         | `https://notes.jordanscales.com/me.jpeg` | Default social image                      |
+| `BASE_URL`           | No         | `/`                                      | URL path prefix for generated links       |
+| `BUILD`              | No         | `build/`                                 | Generated-site output directory           |
+| `SQLITE_DB_FILE`     | No         | `db.sqlite3`                             | Local Notion page cache                   |
+| `CONFIG`             | No         | `.env`                                   | Alternate dotenv-compatible configuration |
+| `HOST`               | No         | `127.0.0.1`                              | Static/webhook server host                |
+| `PORT`               | No         | `3000`                                   | Static/webhook server port                |
+| `WEBHOOK_SECRET`     | Production | —                                        | Secret required by the Notion webhook     |
 
-### notes deployment
+## Development
+
+```sh
+npm install
+npm run lint
+npm run typecheck
+npm test
+```
+
+Build with `npm run build`. For refactors that should not alter generated pages, use `npm run build:compare-fresh` to compare a fresh build with the current deployment output without modifying `build/`.
+
+## Notes deployment
 
 The notes deployment has two roles:
 
@@ -75,7 +100,7 @@ notes.jordanscales.com        # public site, points to Cloudflare Pages
 hooks.jordanscales.com        # webhook server, points to Hetzner
 ```
 
-#### Architecture overview
+### Architecture overview
 
 ```mermaid
 flowchart TD
@@ -107,7 +132,7 @@ Cloudflare creates a new Pages deployment for the `notes` project. Since deploym
 
 Readers visiting `https://notes.jordanscales.com/` hit Cloudflare Pages, not Hetzner. The Hetzner container still keeps and can serve a local generated copy as a fallback, but the intended public browsing path is Cloudflare edge.
 
-#### Cloudflare Pages setup
+### Cloudflare Pages setup
 
 Install dependencies locally if needed:
 
@@ -147,7 +172,7 @@ Manual deploy from Hetzner's generated site directory:
 ssh hetzner 'docker exec notes npx wrangler pages deploy /app/site --project-name notes --branch main'
 ```
 
-#### DNS cutover
+### DNS cutover
 
 1. Add `notes.jordanscales.com` as a custom domain on the Cloudflare Pages project.
 2. Point `notes.jordanscales.com` DNS to Cloudflare Pages using Cloudflare's generated target.
@@ -172,4 +197,4 @@ To deploy source changes to the running `notes` service:
 npm run deploy:notes
 ```
 
-The deploy script syncs source to `/opt/notes`, preserves remote `.env`, rebuilds the Docker image, restarts the `notes` container, and re-registers the route with `kamal-proxy`. It intentionally does not use the nested `build/` git repo. Set `NOTES_WEBHOOK_HOST` when deploying if the Hetzner route should use a hostname other than `notes.jordanscales.com`.
+The deploy script syncs source to `/opt/notes`, preserves remote `.env`, rebuilds the Docker image, restarts the `notes` container, and re-registers the route with `kamal-proxy`. It excludes the local, gitignored `build/` directory. Set `NOTES_WEBHOOK_HOST` when deploying if the Hetzner route should use a hostname other than `notes.jordanscales.com`.
