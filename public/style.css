@@ -196,8 +196,13 @@ footer ul {
 	row-gap: 10px;
 }
 
+footer ul li {
+	display: flex;
+}
+
 footer ul a {
 	display: flex !important;
+	flex: 1;
 	font-weight: bold;
 	padding: 10px;
 	background: var(--dimmest);
