@@ -511,6 +511,16 @@ async function savePage(
 				.map((id) => `<li>${linkOfId(allPages, id)}</li>`)
 				.join("\n")}</ul></footer>`
 		: "";
+	const canonicalUrl = new URL(pageUrl(filename), "https://notes.jordanscales.com").toString();
+	const postActions =
+		filename === "index.html"
+			? ""
+			: `<nav class="post-actions" aria-label="Post actions">
+          <hr>
+          <a href="mailto:me@jordanscales.com?subject=${encodeURIComponent(`Re: ${title}`)}">Email me</a>
+          <span aria-hidden="true">·</span>
+          <a href="https://bsky.app/intent/compose?text=${encodeURIComponent(`"${title}" ${canonicalUrl}`)}" target="_blank" rel="noopener noreferrer">Share on Bluesky</a>
+        </nav>`;
 
 	const script = await fsPromises.readFile(path.join(__dirname, "public/script.ts"), "utf8");
 	const { outputText: browserScript } = ts.transpileModule(script, {
@@ -579,6 +589,7 @@ async function savePage(
 						: `<h1>${title}</h1>`
 				}
         ${content}
+        ${postActions}
         ${footer}
       </main>
 		<script>window.__themeAssets = ${themeAssets}</script>

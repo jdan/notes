@@ -1705,6 +1705,41 @@ describe("savePage", () => {
 		expect(content).toContain("other-ref");
 	});
 
+	test("renders email and Bluesky actions above backlinks", async () => {
+		const fs = await import("fs");
+		const filename = "test-post-actions.html";
+
+		await savePage(
+			{
+				id: "actions-page",
+				title: "A post & its title",
+				created: "2024-01-01T00:00:00.000Z",
+				favicon: "",
+				headingIcon: null,
+				content: "<p>Hello</p>",
+				filename,
+				publishToRss: false,
+				ogImage: null,
+			},
+			{ "actions-page": ["other-ref"] },
+			[],
+		);
+
+		const dest = settings.output(filename);
+		const content = fs.readFileSync(dest, "utf8");
+		const actionsIndex = content.indexOf('class="post-actions"');
+		const backlinksIndex = content.indexOf("mentioned in");
+
+		expect(content).toContain(
+			"mailto:me@jordanscales.com?subject=Re%3A%20A%20post%20%26%20its%20title",
+		);
+		expect(content).toContain(
+			"https://bsky.app/intent/compose?text=%22A%20post%20%26%20its%20title%22%20https%3A%2F%2Fnotes.jordanscales.com%2Ftest-post-actions",
+		);
+		expect(actionsIndex).toBeGreaterThan(-1);
+		expect(backlinksIndex).toBeGreaterThan(actionsIndex);
+	});
+
 	test("renders heading icon when provided", async () => {
 		const fs = await import("fs");
 		const filename = "test-heading-icon.html";

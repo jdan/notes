@@ -162,6 +162,22 @@ ol ol ol ol ol ol li {
 	padding: 3px 0;
 }
 
+.post-actions {
+	font-size: 14px;
+	margin-bottom: 24px;
+}
+
+.post-actions hr {
+	border: 0;
+	border-top: 1px solid var(--link-color);
+	margin: 32px 0 8px;
+	opacity: 0.5;
+}
+
+.post-actions span {
+	margin: 0 4px;
+}
+
 footer label {
 	display: block;
 	font-size: 14px;
