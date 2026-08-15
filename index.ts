@@ -519,7 +519,7 @@ async function savePage(
           <hr>
           <a href="mailto:me@jordanscales.com?subject=${encodeURIComponent(`Re: ${title}`)}">Email me</a>
           <span aria-hidden="true">·</span>
-          <a href="https://bsky.app/intent/compose?text=${encodeURIComponent(`"${title}" ${canonicalUrl}`)}" target="_blank" rel="noopener noreferrer">Share on Bluesky</a>
+          <a href="https://bsky.app/intent/compose?text=${encodeURIComponent(`"${title}" by @jdan.me ${canonicalUrl}`)}" target="_blank" rel="noopener noreferrer">Share on Bluesky</a>
         </nav>`;
 
 	const script = await fsPromises.readFile(path.join(__dirname, "public/script.ts"), "utf8");
