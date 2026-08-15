@@ -136,6 +136,107 @@ figure.shader-stack-embed {
 	margin: 0.6em 0 0;
 }
 
+.shader-stack-code .syntax-comment {
+	color: #7b8388;
+}
+
+.shader-stack-code .syntax-structure {
+	color: #cf3f20;
+	font-weight: 700;
+}
+
+.shader-stack-code .syntax-definition {
+	color: #1e2326;
+	font-weight: 700;
+}
+
+.shader-stack-code .syntax-local {
+	color: #176ba9;
+	font-weight: 600;
+}
+
+.shader-stack-code .syntax-effect,
+.shader-stack-code .syntax-constructor {
+	color: #18783d;
+}
+
+.shader-stack-code .syntax-number {
+	color: #995b00;
+}
+
+.shader-stack-code .syntax-input {
+	color: #087c8f;
+}
+
+.shader-stack-code .syntax-stack {
+	color: #7654a5;
+}
+
+.shader-stack-code .syntax-math {
+	color: #7e6d00;
+}
+
+.shader-stack-code .syntax-color {
+	color: #b83268;
+}
+
+.shader-stack-code .syntax-swizzle {
+	color: #296ca8;
+}
+
+.shader-stack-code .syntax-user-word {
+	color: #aa4f18;
+}
+
+.dark .shader-stack-code .syntax-comment {
+	color: #687278;
+}
+
+.dark .shader-stack-code .syntax-structure {
+	color: #ff6a47;
+}
+
+.dark .shader-stack-code .syntax-definition {
+	color: #f3f5f6;
+}
+
+.dark .shader-stack-code .syntax-local {
+	color: #8cc8ff;
+}
+
+.dark .shader-stack-code .syntax-effect,
+.dark .shader-stack-code .syntax-constructor {
+	color: #7fda9a;
+}
+
+.dark .shader-stack-code .syntax-number {
+	color: #e9ae67;
+}
+
+.dark .shader-stack-code .syntax-input {
+	color: #6dcfe1;
+}
+
+.dark .shader-stack-code .syntax-stack {
+	color: #c6a7f2;
+}
+
+.dark .shader-stack-code .syntax-math {
+	color: #e5d477;
+}
+
+.dark .shader-stack-code .syntax-color {
+	color: #ff8fb5;
+}
+
+.dark .shader-stack-code .syntax-swizzle {
+	color: #82b8f0;
+}
+
+.dark .shader-stack-code .syntax-user-word {
+	color: #f1a36f;
+}
+
 figcaption {
 	font-size: 14px;
 	color: var(--link-color);

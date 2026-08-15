@@ -44,7 +44,7 @@ The Notion block is handled by the `embed` branch of `blockToHtml()` in `index.t
 2. Validates and decodes the versioned `#share=` payload.
 3. Rewrites normal share URLs and embed URLs to the canonical `/embed` route.
 4. Emits a lazy-loading iframe.
-5. Escapes the decoded source into a native `<details>` element beneath the iframe.
+5. Highlights and escapes the decoded source into a native `<details>` element beneath the iframe.
 
 The resulting structure is approximately:
 
@@ -61,6 +61,8 @@ The resulting structure is approximately:
 The iframe is not given a `sandbox` attribute. A sandboxed iframe has an opaque origin, which prevents Shader/Stack's JavaScript modules from loading unless the production asset responses opt into cross-origin access. The separate `shaders.jordanscales.com` origin still isolates the application from the notes page.
 
 Styles for the responsive 4:3 iframe and code disclosure live in `public/style.css` under `.shader-stack-embed` and `.shader-stack-code`.
+
+`highlightShaderStackSource()` in `index.ts` mirrors Shader/Stack's token categories: comments, definitions, locals, stack effects, numbers, built-in inputs, stack words, constructors, math words, color words, swizzles and user-defined words. The corresponding light and dark colors in `public/style.css` match the editor palette in Shader/Stack.
 
 ## Shader/Stack implementation
 

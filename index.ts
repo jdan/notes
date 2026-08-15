@@ -308,6 +308,110 @@ function escapeHtmlAttribute(str: string) {
 const shaderStackOrigin = "https://shaders.jordanscales.com";
 const shaderStackHashPrefix = "#share=";
 const maxSharedShaderSourceLength = 200_000;
+const shaderStackSyntaxWords = {
+	input: new Set(["uv", "frag-coord", "resolution", "time", "frame", "mouse"]),
+	stack: new Set(["dup", "swap", "over", "rot", "drop", "times"]),
+	constructor: new Set(["vec2", "vec3", "vec4"]),
+	math: new Set([
+		"+",
+		"-",
+		"*",
+		"/",
+		"min",
+		"max",
+		"pow",
+		"mod",
+		"sin",
+		"cos",
+		"tan",
+		"abs",
+		"sqrt",
+		"floor",
+		"ceil",
+		"fract",
+		"exp",
+		"log",
+		"neg",
+		"length",
+		"normalize",
+		"dot",
+		"step",
+		"smoothstep",
+		"clamp",
+		"mix",
+		"rotate",
+		"noise",
+	]),
+	color: new Set(["palette"]),
+};
+
+function highlightShaderStackSource(source: string) {
+	const definitionNames = new Set<string>();
+	for (const match of source.matchAll(/::?\s*([^\s:;\\]+)/g)) {
+		definitionNames.add(match[1]);
+	}
+	const localNames = new Set<string>();
+	for (const match of source.matchAll(/::\s*[^\s:;\\]+\s*\(([^)]*)\)/g)) {
+		const inputs = match[1].split("--", 1)[0].trim();
+		if (inputs) inputs.split(/\s+/).forEach((input) => localNames.add(input));
+	}
+
+	const pattern =
+		/\\[^\n]*|::|--|[:;()[\]]|[-+]?(?:(?:\d+\.\d*)|(?:\.\d+)|(?:\d+))(?:[eE][-+]?\d+)?|[^\s:;()[\]]+/g;
+	let cursor = 0;
+	let expectsDefinitionName = false;
+	let insideEffect = false;
+	let parsingEffectOutputs = false;
+	let html = "";
+	let match: RegExpExecArray | null;
+
+	while ((match = pattern.exec(source)) !== null) {
+		if (match.index > cursor) html += escapeHtmlAttribute(source.slice(cursor, match.index));
+		const token = match[0];
+		let className = "";
+
+		if (token.startsWith("\\")) className = "syntax-comment";
+		else if (token === ":" || token === "::") {
+			className = "syntax-structure";
+			expectsDefinitionName = true;
+		} else if (token === "(") {
+			className = "syntax-structure";
+			insideEffect = true;
+			parsingEffectOutputs = false;
+		} else if (token === "[" || token === "]") {
+			className = "syntax-structure";
+		} else if (token === "--" && insideEffect) {
+			className = "syntax-structure";
+			parsingEffectOutputs = true;
+		} else if (token === ")") {
+			className = "syntax-structure";
+			insideEffect = false;
+			parsingEffectOutputs = false;
+		} else if (token === ";") className = "syntax-structure";
+		else if (expectsDefinitionName) {
+			className = "syntax-definition";
+			expectsDefinitionName = false;
+		} else if (insideEffect) {
+			className = parsingEffectOutputs ? "syntax-effect" : "syntax-local";
+		} else if (/^[-+]?(?:(?:\d+\.\d*)|(?:\.\d+)|(?:\d+))(?:[eE][-+]?\d+)?$/.test(token)) {
+			className = "syntax-number";
+		} else if (localNames.has(token)) className = "syntax-local";
+		else if (shaderStackSyntaxWords.input.has(token)) className = "syntax-input";
+		else if (shaderStackSyntaxWords.stack.has(token)) className = "syntax-stack";
+		else if (shaderStackSyntaxWords.constructor.has(token)) className = "syntax-constructor";
+		else if (shaderStackSyntaxWords.math.has(token)) className = "syntax-math";
+		else if (shaderStackSyntaxWords.color.has(token)) className = "syntax-color";
+		else if (/^\.[xyzwrgba]{1,4}$/.test(token)) className = "syntax-swizzle";
+		else if (definitionNames.has(token)) className = "syntax-user-word";
+
+		const escapedToken = escapeHtmlAttribute(token);
+		html += className ? `<span class="${className}">${escapedToken}</span>` : escapedToken;
+		cursor = pattern.lastIndex;
+	}
+
+	if (cursor < source.length) html += escapeHtmlAttribute(source.slice(cursor));
+	return html;
+}
 
 function parseShaderStackEmbed(urlString: string) {
 	try {
@@ -970,7 +1074,7 @@ async function blockToHtml(
         <iframe title="Shader preview: ${escapeHtmlAttribute(shader.filename)}" src="${escapeHtmlAttribute(shader.embedUrl)}" loading="lazy"></iframe>
         <details class="shader-stack-code">
           <summary>View code</summary>
-          <pre><code class="language-stack">${escapeHtmlAttribute(shader.source)}</code></pre>
+          <pre><code class="language-stack">${highlightShaderStackSource(shader.source)}</code></pre>
         </details>
       </figure>`;
 		}

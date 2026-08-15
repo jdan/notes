@@ -1248,7 +1248,14 @@ describe("blockToHtml", () => {
 	});
 
 	test("Shader/Stack embed renders a live preview and collapsible source", async () => {
-		const source = ": main\n  0.5 0.25 < &\n;";
+		const source = `\\ comment < &
+:: shade ( point -- color )
+  point .x 0.5 + palette
+;
+: main
+  uv shade
+  1.0 vec4
+;`;
 		const encoded = Buffer.from(
 			JSON.stringify({ version: 1, filename: 'demo "shader".stack', source }),
 		).toString("base64url");
@@ -1268,7 +1275,12 @@ describe("blockToHtml", () => {
 		expect(result).toContain(`src=\"https://shaders.jordanscales.com/embed#share=${encoded}\"`);
 		expect(result).toContain('title="Shader preview: demo &quot;shader&quot;.stack"');
 		expect(result).toContain("<summary>View code</summary>");
-		expect(result).toContain("0.5 0.25 &lt; &amp;");
+		expect(result).toContain('<span class="syntax-comment">\\ comment &lt; &amp;</span>');
+		expect(result).toContain('<span class="syntax-definition">shade</span>');
+		expect(result).toContain('<span class="syntax-local">point</span>');
+		expect(result).toContain('<span class="syntax-input">uv</span>');
+		expect(result).toContain('<span class="syntax-user-word">shade</span>');
+		expect(result).toContain('<span class="syntax-constructor">vec4</span>');
 	});
 
 	test("video with non-youtube external URL", async () => {
