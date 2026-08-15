@@ -1,6 +1,6 @@
 # Shader/Stack embeds
 
-Shader/Stack embeds render a live Stack shader from a Notion Embed block. The shader runs in a lightweight cross-origin iframe, while the notes page renders the collapsible **View code** section itself.
+Shader/Stack embeds render a live Stack shader from a Notion Embed block. The shader runs in a lightweight cross-origin iframe, while the notes page renders an expanded, collapsible source block beneath it.
 
 ## Authoring in Notion
 
@@ -30,7 +30,7 @@ The `#share=` fragment contains URL-safe base64-encoded JSON:
 }
 ```
 
-The fragment is decoded entirely in the browser and is not sent to the Shader/Stack server in HTTP requests. It is still public: the URL appears in the generated page and the source is deliberately exposed by **View code**. Do not put secrets in a shader.
+The fragment is decoded entirely in the browser and is not sent to the Shader/Stack server in HTTP requests. It is still public: the URL appears in the generated page and the source is deliberately displayed beneath the shader. Do not put secrets in a shader.
 
 The current format accepts version 1 payloads with at most 200,000 source characters. Filenames are normalized by Shader/Stack.
 
@@ -51,16 +51,19 @@ The resulting structure is approximately:
 ```html
 <figure class="shader-stack-embed">
 	<iframe src="https://shaders.jordanscales.com/embed#share=..." loading="lazy"></iframe>
-	<details class="shader-stack-code">
-		<summary>View code</summary>
-		<pre><code class="language-stack">...</code></pre>
+	<details class="shader-stack-code" open>
+		<summary>
+			<span>Toggle shader source</span>
+			<code class="shader-stack-code-preview">First source line</code>
+		</summary>
+		<pre><code class="language-stack">Remaining source</code></pre>
 	</details>
 </figure>
 ```
 
 The iframe is not given a `sandbox` attribute. A sandboxed iframe has an opaque origin, which prevents Shader/Stack's JavaScript modules from loading unless the production asset responses opt into cross-origin access. The separate `shaders.jordanscales.com` origin still isolates the application from the notes page.
 
-Styles for the responsive 4:3 iframe and code disclosure live in `public/style.css` under `.shader-stack-embed` and `.shader-stack-code`.
+Styles for the responsive 4:3 iframe and code disclosure live in `public/style.css` under `.shader-stack-embed` and `.shader-stack-code`. The disclosure is expanded by default; its control is a small, softly rounded triangle positioned in the code block's left margin. The first non-empty source line stays in the summary so it remains stationary in both states; expanding reveals the remaining lines beneath it. Leading and trailing empty source lines are omitted from the display. The summary text remains available to assistive technology.
 
 `highlightShaderStackSource()` in `index.ts` mirrors Shader/Stack's token categories: comments, definitions, locals, stack effects, numbers, built-in inputs, stack words, constructors, math words, color words, swizzles and user-defined words. The corresponding light and dark colors in `public/style.css` match the editor palette in Shader/Stack.
 
@@ -82,7 +85,7 @@ When changing the embed contract or runtime:
 1. Deploy Shader/Stack first so `/embed` understands the new payload.
 2. Deploy the notes renderer.
 3. Rebuild the notes site from Notion.
-4. Verify both the live canvas and **View code** on a published page.
+4. Verify both the live canvas and collapsible highlighted source on a published page.
 
 This order prevents newly generated posts from pointing at a Shader/Stack route that is not live yet.
 

@@ -1255,7 +1255,8 @@ describe("blockToHtml", () => {
 : main
   uv shade
   1.0 vec4
-;`;
+;
+`;
 		const encoded = Buffer.from(
 			JSON.stringify({ version: 1, filename: 'demo "shader".stack', source }),
 		).toString("base64url");
@@ -1274,8 +1275,16 @@ describe("blockToHtml", () => {
 		expect(result).toContain('class="shader-stack-embed"');
 		expect(result).toContain(`src=\"https://shaders.jordanscales.com/embed#share=${encoded}\"`);
 		expect(result).toContain('title="Shader preview: demo &quot;shader&quot;.stack"');
-		expect(result).toContain("<summary>View code</summary>");
-		expect(result).toContain('<span class="syntax-comment">\\ comment &lt; &amp;</span>');
+		expect(result).toContain('<details class="shader-stack-code" open>');
+		expect(result).toContain("Toggle shader source");
+		expect(result).toContain(
+			'<code class="shader-stack-code-preview language-stack" aria-hidden="true"><span class="syntax-comment">\\ comment &lt; &amp;</span></code>',
+		);
+		expect(result).not.toContain("View code");
+		expect(
+			result?.match(/<span class="syntax-comment">\\ comment &lt; &amp;<\/span>/g),
+		).toHaveLength(1);
+		expect(result).not.toContain(";\n</code>");
 		expect(result).toContain('<span class="syntax-definition">shade</span>');
 		expect(result).toContain('<span class="syntax-local">point</span>');
 		expect(result).toContain('<span class="syntax-input">uv</span>');

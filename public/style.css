@@ -117,23 +117,89 @@ figure.shader-stack-embed {
 }
 
 .shader-stack-code {
+	position: relative;
+	min-height: 21px;
 	margin-top: 0.6em;
 	font-size: 14px;
 }
 
 .shader-stack-code summary {
-	display: inline-block;
+	display: grid;
+	grid-template-columns: 28px minmax(0, 1fr);
+	place-items: center;
+	width: calc(100% + 28px);
+	height: 21px;
+	margin-left: -28px;
+	list-style: none;
 	cursor: pointer;
 	color: var(--link-color);
-	text-decoration: underline;
+	line-height: 1;
 }
 
-.shader-stack-code > :not(summary) {
-	margin-left: 0 !important;
+.shader-stack-code summary::-webkit-details-marker {
+	display: none;
+}
+
+.shader-stack-code summary::before {
+	content: "";
+	width: 10px;
+	height: 10px;
+	background: currentColor;
+	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 1.5 10 6 3 10.5Z' fill='black' stroke='black' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E")
+		center / contain no-repeat;
+	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 1.5 10 6 3 10.5Z' fill='black' stroke='black' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E")
+		center / contain no-repeat;
+	transform-origin: center;
+}
+
+.shader-stack-code[open] summary::before {
+	transform: rotate(90deg);
+}
+
+@media (max-width: 660px) {
+	.shader-stack-code summary {
+		grid-template-columns: 20px minmax(0, 1fr);
+		width: calc(100% + 20px);
+		margin-left: -20px;
+	}
+}
+
+.shader-stack-code-label {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.shader-stack-code > summary > code.shader-stack-code-preview.language-stack {
+	display: block;
+	position: static;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	border: 0;
+	border-radius: 0;
+	background: none;
+	color: inherit;
+	text-overflow: ellipsis;
+	white-space: pre;
+	justify-self: stretch;
 }
 
 .shader-stack-code pre {
-	margin: 0.6em 0 0;
+	margin: 0;
+	margin-left: 0 !important;
+	overflow: hidden;
+}
+
+.shader-stack-code pre code {
+	padding: 0 !important;
 }
 
 .shader-stack-code .syntax-comment {

@@ -1070,11 +1070,26 @@ async function blockToHtml(
 	} else if (block.type === "embed") {
 		const shader = parseShaderStackEmbed(block.embed.url);
 		if (shader) {
+			const sourceLines = shader.source.split(/\r?\n/);
+			const firstSourceLineIndex = sourceLines.findIndex((line) => line.trim());
+			let lastSourceLineIndex = sourceLines.length;
+			while (lastSourceLineIndex > 0 && !sourceLines[lastSourceLineIndex - 1].trim()) {
+				lastSourceLineIndex -= 1;
+			}
+			const displaySource = sourceLines
+				.slice(Math.max(0, firstSourceLineIndex), lastSourceLineIndex)
+				.join("\n");
+			const highlightedSourceLines = highlightShaderStackSource(displaySource).split("\n");
+			const highlightedFirstSourceLine = highlightedSourceLines.shift() ?? "";
+			const highlightedRemainingSource = highlightedSourceLines.join("\n");
 			return `<figure id="${blockId}" class="shader-stack-embed">
         <iframe title="Shader preview: ${escapeHtmlAttribute(shader.filename)}" src="${escapeHtmlAttribute(shader.embedUrl)}" loading="lazy"></iframe>
-        <details class="shader-stack-code">
-          <summary>View code</summary>
-          <pre><code class="language-stack">${highlightShaderStackSource(shader.source)}</code></pre>
+        <details class="shader-stack-code" open>
+          <summary>
+            <span class="shader-stack-code-label">Toggle shader source</span>
+            <code class="shader-stack-code-preview language-stack" aria-hidden="true">${highlightedFirstSourceLine}</code>
+          </summary>
+          ${highlightedRemainingSource ? `<pre><code class="language-stack">${highlightedRemainingSource}</code></pre>` : ""}
         </details>
       </figure>`;
 		}
