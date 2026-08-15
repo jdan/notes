@@ -1247,6 +1247,30 @@ describe("blockToHtml", () => {
 		expect(result).toBeUndefined();
 	});
 
+	test("Shader/Stack embed renders a live preview and collapsible source", async () => {
+		const source = ": main\n  0.5 0.25 < &\n;";
+		const encoded = Buffer.from(
+			JSON.stringify({ version: 1, filename: 'demo "shader".stack', source }),
+		).toString("base64url");
+		const result = await blockToHtml(
+			{
+				id: "aaa-bbb-ccc",
+				type: "embed",
+				has_children: false,
+				embed: { url: `https://shaders.jordanscales.com/#share=${encoded}` },
+				children: [],
+			} as any,
+			"page-1",
+			pages,
+		);
+
+		expect(result).toContain('class="shader-stack-embed"');
+		expect(result).toContain(`src=\"https://shaders.jordanscales.com/embed#share=${encoded}\"`);
+		expect(result).toContain('title="Shader preview: demo &quot;shader&quot;.stack"');
+		expect(result).toContain("<summary>View code</summary>");
+		expect(result).toContain("0.5 0.25 &lt; &amp;");
+	});
+
 	test("video with non-youtube external URL", async () => {
 		const result = await blockToHtml(
 			{

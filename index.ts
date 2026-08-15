@@ -305,6 +305,45 @@ function escapeHtmlAttribute(str: string) {
 		.replace(/>/g, "&gt;");
 }
 
+const shaderStackOrigin = "https://shaders.jordanscales.com";
+const shaderStackHashPrefix = "#share=";
+const maxSharedShaderSourceLength = 200_000;
+
+function parseShaderStackEmbed(urlString: string) {
+	try {
+		const url = new URL(urlString);
+		if (url.origin !== shaderStackOrigin || !url.hash.startsWith(shaderStackHashPrefix)) {
+			return null;
+		}
+
+		const encoded = url.hash.slice(shaderStackHashPrefix.length);
+		if (!encoded || !/^[A-Za-z0-9_-]+$/.test(encoded)) return null;
+		const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as {
+			filename?: unknown;
+			source?: unknown;
+			version?: unknown;
+		};
+		if (
+			payload.version !== 1 ||
+			typeof payload.filename !== "string" ||
+			typeof payload.source !== "string" ||
+			payload.source.length > maxSharedShaderSourceLength
+		) {
+			return null;
+		}
+
+		const embedUrl = new URL("/embed", shaderStackOrigin);
+		embedUrl.hash = url.hash;
+		return {
+			embedUrl: embedUrl.toString(),
+			filename: payload.filename,
+			source: payload.source,
+		};
+	} catch {
+		return null;
+	}
+}
+
 function decodeBasicHtmlEntities(str: string) {
 	return str
 		.replace(/&quot;/g, '"')
@@ -925,6 +964,17 @@ async function blockToHtml(
 		// templates are using in pages, but no-ops when rendering
 		return "";
 	} else if (block.type === "embed") {
+		const shader = parseShaderStackEmbed(block.embed.url);
+		if (shader) {
+			return `<figure id="${blockId}" class="shader-stack-embed">
+        <iframe title="Shader preview: ${escapeHtmlAttribute(shader.filename)}" src="${escapeHtmlAttribute(shader.embedUrl)}" loading="lazy"></iframe>
+        <details class="shader-stack-code">
+          <summary>View code</summary>
+          <pre><code class="language-stack">${escapeHtmlAttribute(shader.source)}</code></pre>
+        </details>
+      </figure>`;
+		}
+
 		const prefix = "https://www.val.town/v/";
 		if (block.embed.url.startsWith(prefix)) {
 			// extract an id

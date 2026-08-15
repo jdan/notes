@@ -101,6 +101,41 @@ figure img {
 	height: auto;
 }
 
+figure.shader-stack-embed {
+	width: 100%;
+	max-width: none;
+	margin: 1em 0;
+}
+
+.shader-stack-embed iframe {
+	display: block;
+	width: 100%;
+	aspect-ratio: 4 / 3;
+	border: 0;
+	border-radius: 4px;
+	background: #050709;
+}
+
+.shader-stack-code {
+	margin-top: 0.6em;
+	font-size: 14px;
+}
+
+.shader-stack-code summary {
+	display: inline-block;
+	cursor: pointer;
+	color: var(--link-color);
+	text-decoration: underline;
+}
+
+.shader-stack-code > :not(summary) {
+	margin-left: 0 !important;
+}
+
+.shader-stack-code pre {
+	margin: 0.6em 0 0;
+}
+
 figcaption {
 	font-size: 14px;
 	color: var(--link-color);
