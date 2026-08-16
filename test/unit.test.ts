@@ -931,6 +931,35 @@ describe("blockToHtml", () => {
 		expect(result).toContain("print");
 	});
 
+	test("code captions render and !factor selects Factor syntax highlighting", async () => {
+		const result = await blockToHtml(
+			{
+				id: "aaa-bbb-ccc",
+				type: "code",
+				has_children: false,
+				code: {
+					caption: [
+						richText("An example in "),
+						richText("Factor", { link: { url: "https://factorcode.org/" } }),
+						richText(" !factor"),
+					],
+					language: "plain text",
+					text: [richText("2 3 +")],
+				},
+				children: [],
+			} as any,
+			"page-1",
+			pages,
+		);
+
+		expect(result).toContain('class="code-block"');
+		expect(result).toContain('class="language-factor"');
+		expect(result).toContain(
+			'<figcaption>An example in <a href="https://factorcode.org/">Factor</a></figcaption>',
+		);
+		expect(result).not.toContain("!factor");
+	});
+
 	test("code block with preview=true renders inline script", async () => {
 		const result = await blockToHtml(
 			{

@@ -89,6 +89,7 @@ loadLanguages([
 	"ocaml",
 	"scheme",
 	"diff",
+	"factor",
 	"shell",
 	"docker",
 	"typescript",
@@ -474,6 +475,31 @@ function pageMetaDescription(title: string, content = "") {
 
 function sluggify(str: string) {
 	return str.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
+
+function trimRichTextSuffix(texts: RichText[], suffix: string) {
+	let remaining = suffix.length;
+	const trimmed = [...texts];
+
+	for (let i = trimmed.length - 1; i >= 0 && remaining > 0; i -= 1) {
+		const text = trimmed[i];
+		if (text.type !== "text") return texts;
+
+		const content = text.text.content;
+		const count = Math.min(remaining, content.length);
+		remaining -= count;
+		if (count === content.length) {
+			trimmed.splice(i, 1);
+		} else {
+			trimmed[i] = {
+				...text,
+				text: { ...text.text, content: content.slice(0, -count) },
+				plain_text: text.plain_text.slice(0, -count),
+			};
+		}
+	}
+
+	return remaining === 0 ? trimmed : texts;
 }
 
 function longDate(str: string) {
@@ -1009,22 +1035,35 @@ async function blockToHtml(
 			return await renderPreview(pageId, block as CardBlockBase & { type: "code" });
 		}
 
-		const hasCustomLanguage =
-			block.code.language === "plain text" && /^lang=/.test(concatenateText(block.code.caption));
-
-		const language = hasCustomLanguage
-			? concatenateText(block.code.caption).slice("lang=".length)
-			: block.code.language.toLowerCase();
+		const codeCaption = concatenateText(block.code.caption);
+		const isPlainText = block.code.language === "plain text";
+		const languageFromCaption =
+			isPlainText && /^lang=/.test(codeCaption)
+				? codeCaption.slice("lang=".length)
+				: isPlainText
+					? codeCaption.match(/(?:^|\s)!([a-z][\w-]*)\s*$/i)?.[1]?.toLowerCase()
+					: undefined;
+		const language = languageFromCaption ?? block.code.language.toLowerCase();
+		const languageDirective = codeCaption.match(/\s*![a-z][\w-]*\s*$/i)?.[0];
+		const captionTexts = languageFromCaption
+			? /^lang=/.test(codeCaption)
+				? []
+				: trimRichTextSuffix(block.code.caption, languageDirective || "")
+			: block.code.caption;
+		const caption = await textToHtml_(captionTexts);
 		if (language !== "plain text" && !Prism.languages[language]) {
 			console.log(pageId, "Unrecognized language --", language);
 		}
 		const code = Prism.languages[language]
 			? Prism.highlight(concatenateText(block.code.text), Prism.languages[language], language)
 			: concatenateText(block.code.text);
-		return `<pre id="${blockId}"><code class="language-${language.replace(
+		const renderedCode = `<pre${caption ? "" : ` id="${blockId}"`}><code class="language-${language.replace(
 			/\s/g,
 			"-",
 		)}">${code}</code></pre>`;
+		return caption
+			? `<figure id="${blockId}" class="code-block">${renderedCode}<figcaption>${caption}</figcaption></figure>`
+			: renderedCode;
 	} else if (block.type === "equation") {
 		return katex.renderToString(block.equation.expression, {
 			displayMode: true,

@@ -101,6 +101,12 @@ figure img {
 	height: auto;
 }
 
+figure.code-block {
+	width: 100%;
+	max-width: none;
+	box-sizing: border-box;
+}
+
 figure.shader-stack-embed {
 	width: 100%;
 	max-width: none;
