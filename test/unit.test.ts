@@ -1307,6 +1307,9 @@ describe("blockToHtml", () => {
 		expect(result).toContain('<details class="shader-stack-code" open>');
 		expect(result).toContain("Toggle shader source");
 		expect(result).toContain(
+			`<a class="shader-stack-remix" href="https://shaders.jordanscales.com/#share=${encoded}">Remix this</a>`,
+		);
+		expect(result).toContain(
 			'<code class="shader-stack-code-preview language-stack" aria-hidden="true"><span class="syntax-comment">\\ comment &lt; &amp;</span></code>',
 		);
 		expect(result).not.toContain("View code");

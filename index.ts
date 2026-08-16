@@ -439,8 +439,11 @@ function parseShaderStackEmbed(urlString: string) {
 
 		const embedUrl = new URL("/embed", shaderStackOrigin);
 		embedUrl.hash = url.hash;
+		const shareUrl = new URL("/", shaderStackOrigin);
+		shareUrl.hash = url.hash;
 		return {
 			embedUrl: embedUrl.toString(),
+			shareUrl: shareUrl.toString(),
 			filename: payload.filename,
 			source: payload.source,
 		};
@@ -1127,6 +1130,7 @@ async function blockToHtml(
           <summary>
             <span class="shader-stack-code-label">Toggle shader source</span>
             <code class="shader-stack-code-preview language-stack" aria-hidden="true">${highlightedFirstSourceLine}</code>
+            <a class="shader-stack-remix" href="${escapeHtmlAttribute(shader.shareUrl)}">Remix this</a>
           </summary>
           ${highlightedRemainingSource ? `<pre><code class="language-stack">${highlightedRemainingSource}</code></pre>` : ""}
         </details>

@@ -131,7 +131,7 @@ figure.shader-stack-embed {
 
 .shader-stack-code summary {
 	display: grid;
-	grid-template-columns: 28px minmax(0, 1fr);
+	grid-template-columns: 28px minmax(0, 1fr) auto;
 	place-items: center;
 	width: calc(100% + 28px);
 	height: 21px;
@@ -164,7 +164,7 @@ figure.shader-stack-embed {
 
 @media (max-width: 660px) {
 	.shader-stack-code summary {
-		grid-template-columns: 20px minmax(0, 1fr);
+		grid-template-columns: 20px minmax(0, 1fr) auto;
 		width: calc(100% + 20px);
 		margin-left: -20px;
 	}
@@ -196,6 +196,12 @@ figure.shader-stack-embed {
 	text-overflow: ellipsis;
 	white-space: pre;
 	justify-self: stretch;
+}
+
+.shader-stack-remix {
+	margin-left: 1em;
+	font-family: monospace;
+	white-space: nowrap;
 }
 
 .shader-stack-code pre {
