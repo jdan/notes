@@ -1811,7 +1811,7 @@ describe("savePage", () => {
 			"mailto:me@jordanscales.com?subject=Re%3A%20A%20post%20%26%20its%20title",
 		);
 		expect(content).toContain(
-			"https://bsky.app/intent/compose?text=%22A%20post%20%26%20its%20title%22%20by%20%40jdan.me%20https%3A%2F%2Fnotes.jordanscales.com%2Ftest-post-actions",
+			"https://bsky.app/intent/compose?text=%E2%80%9CA%20post%20%26%20its%20title%E2%80%9D%20by%20%40jdan.me%20https%3A%2F%2Fnotes.jordanscales.com%2Ftest-post-actions",
 		);
 		expect(actionsIndex).toBeGreaterThan(-1);
 		expect(backlinksIndex).toBeGreaterThan(actionsIndex);
