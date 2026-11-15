@@ -1,0 +1,26 @@
+# Cloudflare Pages response headers. Rules are additive; HTML and CSS keep
+# the platform default (revalidate on every request) so deploys show up immediately.
+
+# KaTeX fonts only change when the katex dependency is upgraded.
+/fonts/*
+  Cache-Control: public, max-age=31536000
+
+# Image filenames are derived from Notion block IDs rather than content hashes,
+# so a replaced image keeps its URL. Cache briefly and revalidate in the background.
+/*.avif
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/*.webp
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/*.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/*.jpeg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/*.jpg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/*.gif
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/prism-*.css
+  Cache-Control: public, max-age=604800
+/katex.min.css
+  Cache-Control: public, max-age=604800

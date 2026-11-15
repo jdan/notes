@@ -662,6 +662,10 @@ async function copyStaticAssets() {
 			destination: "serve.json",
 		},
 		{
+			source: path.join(__dirname, "public/_headers"),
+			destination: "_headers",
+		},
+		{
 			source: path.join(__dirname, "node_modules/prismjs/themes/prism-coy.css"),
 			destination: "prism-coy.css",
 		},

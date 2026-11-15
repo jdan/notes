@@ -1750,6 +1750,9 @@ describe("copyStaticAssets", () => {
 		expect(fs.existsSync(settings.output(path.join("fonts", "KaTeX_Main-Regular.woff2")))).toBe(
 			true,
 		);
+		const headers = fs.readFileSync(settings.output("_headers"), "utf8");
+		expect(headers).toContain("/fonts/*\n  Cache-Control: public, max-age=31536000");
+		expect(headers).toContain("/*.webp\n  Cache-Control: public, max-age=86400");
 	});
 });
 
