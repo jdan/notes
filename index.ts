@@ -776,8 +776,23 @@ async function savePage(
 	const metaDescription = pageMetaDescription(title, content);
 	const twitterCard = ogImage ? "summary_large_image" : "summary";
 	const iconMimeType = mimeTypes.lookup(icon) || "image/png";
+	// Preload the KaTeX fonts nearly every formula uses. Otherwise they are only
+	// discovered after katex.min.css parses and cause layout shift when they swap in.
 	const katexStylesheet = (content || "").includes('class="katex')
-		? `<link rel="stylesheet" href="${settings.url("katex.min.css")}">`
+		? [
+				...["KaTeX_Main-Regular.woff2", "KaTeX_Math-Italic.woff2"].map(
+					(font) =>
+						`<link rel="preload" href="${settings.url(`fonts/${font}`)}" as="font" type="font/woff2" crossorigin>`,
+				),
+				`<link rel="stylesheet" href="${settings.url("katex.min.css")}">`,
+			].join("\n      ")
+		: "";
+	// Only pages with highlighted code need a Prism theme. The inline script swaps
+	// to the dark theme before first paint so dark-mode readers never block on
+	// (or flash) the light theme.
+	const prismStylesheet = /class="[^"]*\blanguage-/.test(content || "")
+		? `<link id="prism" rel="stylesheet" href="${settings.url("prism-coy.css")}">
+      <script>if (document.documentElement.classList.contains("dark")) document.getElementById("prism").href = ${JSON.stringify(settings.url("prism-tomorrow.css"))}</script>`
 		: "";
 	const themeAssets = JSON.stringify({
 		prismCoy: settings.url("prism-coy.css"),
@@ -814,9 +829,7 @@ async function savePage(
       <meta name="twitter:description" content="${metaDescription}" />
 
       <link rel="stylesheet" href="${settings.url("style.css")}">
-      <link rel="preload" href="${settings.url("prism-coy.css")}" as="style">
-      <link rel="preload" href="${settings.url("prism-tomorrow.css")}" as="style">
-      <link id="prism" rel="stylesheet" href="${settings.url("prism-coy.css")}">
+      ${prismStylesheet}
       ${katexStylesheet}
     </head>
     <body>

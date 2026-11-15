@@ -1757,6 +1757,61 @@ describe("copyStaticAssets", () => {
 });
 
 describe("savePage", () => {
+	const renderHead = async (filename: string, content: string) => {
+		const fs = await import("fs");
+		await savePage(
+			{
+				id: "test-head",
+				title: "Test",
+				created: "2024-01-01T00:00:00.000Z",
+				favicon: "",
+				headingIcon: null,
+				content,
+				filename,
+				publishToRss: false,
+				ogImage: null,
+			},
+			{},
+			[],
+		);
+		return fs.readFileSync(settings.output(filename), "utf8").split("</head>")[0];
+	};
+
+	test("preloads KaTeX fonts only on pages with math", async () => {
+		const mathHead = await renderHead("test-katex.html", '<span class="katex">x</span>');
+		for (const font of ["KaTeX_Main-Regular.woff2", "KaTeX_Math-Italic.woff2"]) {
+			expect(mathHead).toContain(
+				`<link rel="preload" href="/fonts/${font}" as="font" type="font/woff2" crossorigin>`,
+			);
+		}
+		expect(mathHead.indexOf("KaTeX_Main-Regular.woff2")).toBeLessThan(
+			mathHead.indexOf("katex.min.css"),
+		);
+
+		const plainHead = await renderHead("test-no-katex.html", "<p>Hello</p>");
+		expect(plainHead).not.toContain("KaTeX_");
+		expect(plainHead).not.toContain("katex.min.css");
+	});
+
+	test("omits Prism stylesheets on pages without highlighted code", async () => {
+		const head = await renderHead("test-no-prism.html", "<p>Hello</p>");
+		expect(head).not.toContain("prism-coy.css");
+		expect(head).not.toContain("prism-tomorrow.css");
+		expect(head).not.toContain('rel="preload"');
+	});
+
+	test("includes one Prism stylesheet, swapped to dark before paint, on code pages", async () => {
+		const head = await renderHead(
+			"test-prism.html",
+			'<pre><code class="language-js">1</code></pre>',
+		);
+		expect(head).toContain('<link id="prism" rel="stylesheet" href="/prism-coy.css">');
+		expect(head).toContain(
+			'if (document.documentElement.classList.contains("dark")) document.getElementById("prism").href = "/prism-tomorrow.css"',
+		);
+		expect(head).not.toContain('rel="preload"');
+	});
+
 	afterAll(() => {
 		const fs = require("fs");
 		const path = require("path");

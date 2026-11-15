@@ -3,7 +3,7 @@ type ThemeAssetsWindow = Window &
 		__themeAssets: { prismCoy: string; prismTomorrow: string };
 	};
 
-const stylesheet = document.getElementById("prism") as HTMLElement;
+const stylesheet = document.getElementById("prism");
 const toggleBtn = document.getElementById("toggle-btn") as HTMLElement;
 const themeColor = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
 const themeAssets = (window as ThemeAssetsWindow).__themeAssets;
@@ -21,7 +21,7 @@ function setTheme(isDark: boolean) {
 		toggleBtn.innerHTML = "☀️";
 		toggleBtn.setAttribute("aria-label", "enable light theme");
 		themeColor.content = "#2f3437";
-		stylesheet.setAttribute("href", themeAssets.prismTomorrow);
+		stylesheet?.setAttribute("href", themeAssets.prismTomorrow);
 	} else {
 		localStorage.setItem("theme", "light");
 		document.documentElement.classList.remove("dark");
@@ -29,7 +29,7 @@ function setTheme(isDark: boolean) {
 		toggleBtn.innerHTML = "🌙";
 		toggleBtn.setAttribute("aria-label", "enable dark theme");
 		themeColor.content = "#ffffff";
-		stylesheet.setAttribute("href", themeAssets.prismCoy);
+		stylesheet?.setAttribute("href", themeAssets.prismCoy);
 	}
 }
 
